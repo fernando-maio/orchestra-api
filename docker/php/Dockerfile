@@ -21,7 +21,19 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Install Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
+# O pecl.php.net entrega downloads truncados com alguma frequencia: o .tgz baixa
+# pela metade e a extracao falha com "unable to unpack". Tentamos ate 3 vezes,
+# limpando o download parcial entre as tentativas.
+RUN set -eux; \
+    ok=0; \
+    for i in 1 2 3; do \
+        if pecl install redis; then ok=1; break; fi; \
+        echo "pecl install redis falhou (tentativa ${i}/3); limpando download parcial"; \
+        rm -rf /tmp/pear; \
+        sleep 5; \
+    done; \
+    test "$ok" = 1; \
+    docker-php-ext-enable redis
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*

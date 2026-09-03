@@ -426,11 +426,17 @@ docker-compose down && docker-compose up -d --build
 > **IMPORTANTE**: Nunca executar comandos npm diretamente no diretório local!
 > Os pacotes devem ser instalados dentro do container Docker para funcionar corretamente.
 
-```bash
-# Instalar dependências (usar SEMPRE)
-docker exec orchestra-frontend npm install
+> O container roda `npm ci` no boot (e não `npm install`): ele instala exatamente
+> o que está no `package-lock.json`, o que torna o ambiente reprodutível. Como
+> efeito colateral, `npm ci` **falha** se o `package.json` e o lock estiverem
+> fora de sincronia — nesse caso rode `npm install` uma vez para reconciliar o
+> lock e commite o resultado.
 
-# Instalar novo pacote
+```bash
+# Reinstalar exatamente o que está no lock (o que o container faz no boot)
+docker exec orchestra-frontend npm ci
+
+# Instalar novo pacote (atualiza o package.json e o lock)
 docker exec orchestra-frontend npm install <package-name>
 
 # Instalar pacote de desenvolvimento
@@ -554,6 +560,46 @@ O sistema usa Spatie Permission com as seguintes permissões:
 | Backend API | http://localhost:8001/api |
 | API Health | http://localhost:8001/api/health |
 | Mailpit | http://localhost:8026 |
+
+---
+
+## Ambiente de Produção
+
+O arquivo `.env.production` (na raiz de `backend/`) carrega a configuração de
+produção. O Laravel só o encontra se `APP_ENV` estiver no **ambiente do
+processo** — não adianta declarar dentro de um `.env`, porque ele é lido antes
+de qualquer arquivo ser aberto (`LoadEnvironmentVariables::checkForSpecificEnvironmentFile`).
+
+O `docker-compose.yml` repassa a variável para o container do PHP:
+
+```bash
+# Sobe usando .env.production
+APP_ENV=production docker compose up -d
+
+# Sem a variável, cai no default 'local' e usa o .env de sempre
+docker compose up -d
+```
+
+Comprovação:
+
+```
+sem APP_ENV        -> env=local      | url=http://localhost:8001            | debug=true
+APP_ENV=production -> env=production | url=https://api.orchestra.example... | debug=false
+```
+
+> **Por que `production` e não `prod`**: o Laravel monta o nome do arquivo como
+> `.env.` + o valor de `APP_ENV`, então `APP_ENV=prod` procuraria `.env.prod`.
+> Só que `App::isProduction()` compara com a string `'production'` — com `prod`
+> ele retorna `false` e as salvaguardas de produção (confirmação em `migrate`,
+> comportamento das páginas de erro) ficam desligadas em silêncio.
+
+> **`.env.production` está no `.gitignore`** (linha 5, padrão do Laravel). Isso é
+> proposital: segredos reais não vão para o repositório. Os campos marcados como
+> `# ALTERAR` devem vir do cofre de segredos do deploy.
+
+> **Este compose é de desenvolvimento**, mesmo com `APP_ENV=production`: ele monta
+> o código como volume (`.:/var/www/html`) em vez de copiá-lo para a imagem. Um
+> deploy real precisa de um compose/Dockerfile próprios, sem bind mount.
 
 ---
 
@@ -761,6 +807,12 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 ## Histórico de Modificações
 
 ### 2026-09-02 - Atualização de Infraestrutura
+- `npm install` -> `npm ci` no boot do container do frontend (instalação
+  reprodutível a partir do `package-lock.json`)
+- Retry (3x) no `pecl install redis` do Dockerfile: o espelho do PECL entrega
+  downloads truncados de forma intermitente e quebrava o build em ambiente novo
+- Criado `.env.production`, carregado quando `APP_ENV=production` chega pelo
+  ambiente do processo; o compose repassa a variável ao container do PHP
 - **Infra passou a ser versionada**: `docker-compose.yml`, `docker/` e este
   `CLAUDE.md` foram movidos para dentro do repo `orchestra-api`. Antes ficavam na
   raiz do projeto, que não é repositório git — ou seja, o Dockerfile e o compose
@@ -904,6 +956,20 @@ docker compose rm -fsv frontend   # -v remove o volume anônimo junto
 rm frontend/package-lock.json     # regenera o lock do zero
 docker compose up -d frontend
 ```
+
+### Build do PHP falha em `pecl install redis`
+O pecl.php.net entrega downloads truncados com alguma frequência. O sintoma é o
+tamanho baixado não bater com o anunciado, seguido de erro de extração:
+
+```
+Starting to download redis-6.3.0.tgz (399,284 bytes)
+......done: 199,714 bytes
+ERROR: unable to unpack /tmp/pear/download/redis-6.3.0.tgz
+```
+
+Não é problema do Dockerfile — é instabilidade do espelho. O Dockerfile já tenta
+até 3 vezes, limpando `/tmp/pear` entre as tentativas. Se as 3 falharem, o build
+aborta de propósito (`test "$ok" = 1`), em vez de gerar uma imagem sem o Redis.
 
 ### Build do PHP falha em `install-modules` do opcache
 `docker-php-ext-install opcache` quebra com `cp: cannot stat 'modules/*'` porque o
