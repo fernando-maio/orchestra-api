@@ -27,12 +27,12 @@ class EventRepository extends BaseRepository implements EventRepositoryInterface
         $query = $this->model->with(['creator', 'organization']);
 
         // Filtro por organização (multi-tenancy)
-        if (!empty($filters['organization_id'])) {
+        if (! empty($filters['organization_id'])) {
             $query->where('organization_id', $filters['organization_id']);
         }
 
         // Busca por nome ou descrição
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -42,25 +42,25 @@ class EventRepository extends BaseRepository implements EventRepositoryInterface
         }
 
         // Filtro por status
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Filtro por cidade
-        if (!empty($filters['city'])) {
+        if (! empty($filters['city'])) {
             $query->where('city', 'like', "%{$filters['city']}%");
         }
 
         // Filtro por estado
-        if (!empty($filters['state'])) {
+        if (! empty($filters['state'])) {
             $query->where('state', $filters['state']);
         }
 
         // Filtro por período (data início)
-        if (!empty($filters['start_from'])) {
+        if (! empty($filters['start_from'])) {
             $query->where('start_date', '>=', $filters['start_from']);
         }
-        if (!empty($filters['start_to'])) {
+        if (! empty($filters['start_to'])) {
             $query->where('start_date', '<=', $filters['start_to']);
         }
 

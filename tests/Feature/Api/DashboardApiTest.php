@@ -13,6 +13,7 @@ use Tests\TestCase;
 class DashboardApiTest extends TestCase
 {
     private Organization $org;
+
     private User $admin;
 
     protected function setUp(): void

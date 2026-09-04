@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Event>
+ * @extends Factory<Event>
  */
 class EventFactory extends Factory
 {
@@ -17,14 +17,14 @@ class EventFactory extends Factory
     public function definition(): array
     {
         $startDate = fake()->dateTimeBetween('+1 week', '+6 months');
-        $endDate = (clone $startDate)->modify('+' . fake()->numberBetween(1, 5) . ' days');
+        $endDate = (clone $startDate)->modify('+'.fake()->numberBetween(1, 5).' days');
 
         return [
             'name' => fake()->sentence(3),
             'description' => fake()->paragraph(),
             'start_date' => $startDate,
             'end_date' => $endDate,
-            'venue_name' => fake()->company() . ' Center',
+            'venue_name' => fake()->company().' Center',
             'address' => fake()->streetAddress(),
             'city' => fake()->city(),
             'state' => fake()->stateAbbr(),

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Repositories;
 
+use App\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CategoryRepositoryInterface extends BaseRepositoryInterface
@@ -10,5 +11,5 @@ interface CategoryRepositoryInterface extends BaseRepositoryInterface
 
     public function getAllOrdered(): Collection;
 
-    public function findBySlug(string $slug): ?\App\Models\Category;
+    public function findBySlug(string $slug): ?Category;
 }

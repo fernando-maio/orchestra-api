@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model
 {
-    use HasFactory, HasUuid, SoftDeletes, BelongsToOrganization;
+    use BelongsToOrganization, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'organization_id',
@@ -111,7 +111,7 @@ class Event extends Model
 
     public function getBudgetProgress(): float
     {
-        if (!$this->estimated_budget || $this->estimated_budget == 0) {
+        if (! $this->estimated_budget || $this->estimated_budget == 0) {
             return 0;
         }
 
@@ -122,7 +122,7 @@ class Event extends Model
     {
         $totalCategories = count($this->required_categories ?? []);
         $contractedCategories = $this->quoteRequests()
-            ->whereHas('proposals', fn($q) => $q->where('proposals.status', 'contracted'))
+            ->whereHas('proposals', fn ($q) => $q->where('proposals.status', 'contracted'))
             ->distinct('category_id')
             ->count();
 

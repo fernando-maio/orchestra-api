@@ -4,11 +4,9 @@ namespace Tests\Unit\Models;
 
 use App\Models\Category;
 use App\Models\Organization;
-use App\Models\Proposal;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorDocument;
-use App\Models\VendorRating;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -309,7 +307,7 @@ class VendorTest extends TestCase
 
     public function test_uses_soft_deletes(): void
     {
-        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Vendor()));
+        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Vendor));
     }
 
     public function test_boolean_casts(): void

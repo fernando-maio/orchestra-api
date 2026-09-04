@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\Organization;
 use App\Models\User;
-use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 class EventsSeeder extends Seeder
@@ -15,8 +15,9 @@ class EventsSeeder extends Seeder
         $organization = Organization::where('email', 'demo@orchestra.local')->first();
         $user = User::where('email', 'demo@orchestra.local')->first();
 
-        if (!$organization || !$user) {
+        if (! $organization || ! $user) {
             $this->command->warn('Demo organization or user not found. Skipping events seeding.');
+
             return;
         }
 

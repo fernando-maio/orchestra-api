@@ -14,7 +14,7 @@ class VendorRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new VendorRepository(new Vendor());
+        $this->repository = new VendorRepository(new Vendor);
     }
 
     // ──────────────────────────────────────────────────

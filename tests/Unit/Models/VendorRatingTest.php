@@ -15,9 +15,13 @@ use Tests\TestCase;
 class VendorRatingTest extends TestCase
 {
     private Organization $organization;
+
     private User $user;
+
     private Vendor $vendor;
+
     private Event $event;
+
     private Proposal $proposal;
 
     protected function setUp(): void

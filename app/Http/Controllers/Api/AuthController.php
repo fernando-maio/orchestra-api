@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -25,21 +25,21 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['As credenciais informadas estão incorretas.'],
             ]);
         }
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             throw ValidationException::withMessages([
                 'email' => ['Esta conta está desativada.'],
             ]);
         }
 
         // Check organization subscription
-        if ($user->organization && !$user->organization->isSubscriptionActive()) {
-            if (!$user->isSuperAdmin()) {
+        if ($user->organization && ! $user->organization->isSubscriptionActive()) {
+            if (! $user->isSuperAdmin()) {
                 throw ValidationException::withMessages([
                     'email' => ['A assinatura da sua organização está inativa.'],
                 ]);
@@ -71,7 +71,7 @@ class AuthController extends Controller
         ]);
 
         // Create organization
-        $organization = \App\Models\Organization::create([
+        $organization = Organization::create([
             'name' => $request->organization_name,
             'email' => $request->email,
             'subscription_status' => 'trial',

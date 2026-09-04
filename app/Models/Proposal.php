@@ -125,12 +125,12 @@ class Proposal extends Model
 
     public function canBeEdited(): bool
     {
-        return !$this->isLocked() && in_array($this->status, ['draft', 'pending']);
+        return ! $this->isLocked() && in_array($this->status, ['draft', 'pending']);
     }
 
     public function lock(): void
     {
-        if (!$this->isLocked()) {
+        if (! $this->isLocked()) {
             $this->locked_value = $this->total_value;
             $this->locked_at = now();
             $this->save();

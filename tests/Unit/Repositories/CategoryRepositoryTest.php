@@ -13,7 +13,7 @@ class CategoryRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new CategoryRepository(new Category());
+        $this->repository = new CategoryRepository(new Category);
     }
 
     public function test_get_all_active_returns_only_active_categories(): void

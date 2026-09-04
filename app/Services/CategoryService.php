@@ -36,7 +36,7 @@ class CategoryService extends BaseService implements CategoryServiceInterface
     public function toggleActive(string $id): Category
     {
         $category = $this->categoryRepository->findOrFail($id);
-        $category->is_active = !$category->is_active;
+        $category->is_active = ! $category->is_active;
         $category->save();
 
         return $category->fresh();
@@ -48,6 +48,7 @@ class CategoryService extends BaseService implements CategoryServiceInterface
             foreach ($orderedIds as $index => $id) {
                 Category::where('id', $id)->update(['sort_order' => $index + 1]);
             }
+
             return true;
         });
     }

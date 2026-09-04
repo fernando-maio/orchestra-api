@@ -1,13 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\VendorController;
-use App\Http\Controllers\Api\PublicVendorController;
-use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\PublicVendorController;
+use App\Http\Controllers\Api\VendorController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,7 +16,7 @@ use App\Http\Controllers\Api\AdminDashboardController;
 */
 
 // Health check
-Route::get('/health', fn() => response()->json(['status' => 'ok']));
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');

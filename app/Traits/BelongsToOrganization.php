@@ -16,9 +16,10 @@ trait BelongsToOrganization
     {
         // Apply global scope to filter by organization
         static::addGlobalScope('organization', function (Builder $builder) {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 // Not authenticated: return nothing for safety
                 $builder->whereRaw('1 = 0');
+
                 return;
             }
 

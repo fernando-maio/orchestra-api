@@ -4,7 +4,6 @@ namespace Tests\Unit\Models;
 
 use App\Models\Event;
 use App\Models\Organization;
-use App\Models\Proposal;
 use App\Models\QuoteRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -186,7 +185,7 @@ class UserTest extends TestCase
 
     public function test_fillable_fields(): void
     {
-        $user = new User();
+        $user = new User;
 
         $this->assertContains('name', $user->getFillable());
         $this->assertContains('email', $user->getFillable());
@@ -197,7 +196,7 @@ class UserTest extends TestCase
 
     public function test_hidden_fields(): void
     {
-        $user = new User();
+        $user = new User;
 
         $this->assertContains('password', $user->getHidden());
         $this->assertContains('remember_token', $user->getHidden());

@@ -10,12 +10,12 @@ use App\Models\Proposal;
 use App\Models\QuoteRequest;
 use App\Services\EventService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\QueryException;
 use Tests\TestCase;
 
 class EventServiceTest extends TestCase
 {
     private EventService $service;
+
     private Organization $organization;
 
     protected function setUp(): void
@@ -29,7 +29,7 @@ class EventServiceTest extends TestCase
 
     private function createEvent(array $attributes = []): Event
     {
-        $defaults = ['name' => 'Event ' . fake()->unique()->randomNumber(5)];
+        $defaults = ['name' => 'Event '.fake()->unique()->randomNumber(5)];
 
         return Event::factory()
             ->forOrganization($this->organization)

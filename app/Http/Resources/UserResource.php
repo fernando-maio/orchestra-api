@@ -14,13 +14,13 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'avatar_url' => $this->avatar_path ? asset('storage/' . $this->avatar_path) : null,
+            'avatar_url' => $this->avatar_path ? asset('storage/'.$this->avatar_path) : null,
             'is_active' => $this->is_active,
             'organization' => new OrganizationResource($this->whenLoaded('organization')),
-            'roles' => $this->whenLoaded('roles', fn() => $this->roles->pluck('name')),
+            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'permissions' => $this->when(
                 $this->relationLoaded('permissions'),
-                fn() => $this->getAllPermissions()->pluck('name')
+                fn () => $this->getAllPermissions()->pluck('name')
             ),
             'created_at' => $this->created_at?->toISOString(),
         ];

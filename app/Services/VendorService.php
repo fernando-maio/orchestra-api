@@ -49,7 +49,7 @@ class VendorService extends BaseService implements VendorServiceInterface
         return DB::transaction(function () use ($data, $categoryIds) {
             $vendor = $this->vendorRepository->create($data);
 
-            if (!empty($categoryIds)) {
+            if (! empty($categoryIds)) {
                 $this->vendorRepository->syncCategories($vendor->id, $categoryIds);
             }
 
@@ -62,7 +62,7 @@ class VendorService extends BaseService implements VendorServiceInterface
         return DB::transaction(function () use ($id, $data, $categoryIds) {
             $vendor = $this->vendorRepository->update($id, $data);
 
-            if (!empty($categoryIds)) {
+            if (! empty($categoryIds)) {
                 $this->vendorRepository->syncCategories($id, $categoryIds);
             }
 
@@ -73,7 +73,7 @@ class VendorService extends BaseService implements VendorServiceInterface
     public function toggleActive(string $id): Vendor
     {
         $vendor = $this->vendorRepository->findOrFail($id);
-        $vendor->is_active = !$vendor->is_active;
+        $vendor->is_active = ! $vendor->is_active;
         $vendor->save();
 
         return $vendor->fresh();

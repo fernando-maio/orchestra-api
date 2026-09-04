@@ -35,7 +35,7 @@ class EventController extends Controller
 
         // Filtra por organização do usuário (multi-tenancy)
         $user = $request->user();
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $filters['organization_id'] = $user->organization_id;
         } elseif ($request->has('organization_id')) {
             $filters['organization_id'] = $request->input('organization_id');
@@ -88,7 +88,7 @@ class EventController extends Controller
         $event = $this->eventService->findOrFail($id);
 
         // Verifica se o evento pode ser editado
-        if (!$event->canBeEdited()) {
+        if (! $event->canBeEdited()) {
             return response()->json([
                 'message' => 'Este evento não pode ser editado no status atual.',
             ], 422);
@@ -189,7 +189,7 @@ class EventController extends Controller
             ? $request->input('organization_id')
             : $user->organization_id;
 
-        if (!$organizationId) {
+        if (! $organizationId) {
             return EventResource::collection(collect());
         }
 

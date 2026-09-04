@@ -7,7 +7,7 @@ use App\Models\VendorDocument;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\VendorDocument>
+ * @extends Factory<VendorDocument>
  */
 class VendorDocumentFactory extends Factory
 {
@@ -19,8 +19,8 @@ class VendorDocumentFactory extends Factory
             'type' => fake()->randomElement(['cnpj_card', 'alvara', 'insurance', 'negative_certificate', 'technical_cert']),
             'name' => fake()->words(3, true),
             'description' => fake()->sentence(),
-            'file_path' => 'documents/' . fake()->uuid() . '.pdf',
-            'file_name' => fake()->word() . '.pdf',
+            'file_path' => 'documents/'.fake()->uuid().'.pdf',
+            'file_name' => fake()->word().'.pdf',
             'file_type' => 'application/pdf',
             'file_size' => fake()->numberBetween(10000, 5000000),
             'issue_date' => now()->subMonths(6),

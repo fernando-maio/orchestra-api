@@ -45,12 +45,14 @@ abstract class BaseRepository implements BaseRepositoryInterface
     {
         $record = $this->findOrFail($id);
         $record->update($data);
+
         return $record->fresh();
     }
 
     public function delete(int|string $id): bool
     {
         $record = $this->findOrFail($id);
+
         return $record->delete();
     }
 

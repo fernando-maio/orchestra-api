@@ -5,20 +5,21 @@ namespace Tests\Unit\Repositories;
 use App\Models\Category;
 use App\Models\Event;
 use App\Models\Organization;
-use App\Models\QuoteRequest;
 use App\Models\Proposal;
+use App\Models\QuoteRequest;
 use App\Repositories\EventRepository;
 use Tests\TestCase;
 
 class EventRepositoryTest extends TestCase
 {
     private EventRepository $repository;
+
     private Organization $organization;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new EventRepository(new Event());
+        $this->repository = new EventRepository(new Event);
         $this->organization = $this->createOrganization();
         // Authenticate as super-admin to bypass BelongsToOrganization global scope
         $this->actingAsSuperAdmin();
@@ -26,7 +27,7 @@ class EventRepositoryTest extends TestCase
 
     private function createEvent(array $attributes = []): Event
     {
-        $defaults = ['name' => 'Event ' . fake()->unique()->randomNumber(5)];
+        $defaults = ['name' => 'Event '.fake()->unique()->randomNumber(5)];
 
         return Event::factory()
             ->forOrganization($this->organization)

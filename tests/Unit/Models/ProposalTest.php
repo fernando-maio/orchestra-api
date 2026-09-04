@@ -5,7 +5,6 @@ namespace Tests\Unit\Models;
 use App\Models\Event;
 use App\Models\Organization;
 use App\Models\Proposal;
-use App\Models\ProposalHistory;
 use App\Models\QuoteRequest;
 use App\Models\User;
 use App\Models\Vendor;
@@ -17,8 +16,11 @@ use Tests\TestCase;
 class ProposalTest extends TestCase
 {
     private Organization $organization;
+
     private User $user;
+
     private Event $event;
+
     private QuoteRequest $quoteRequest;
 
     protected function setUp(): void
@@ -382,7 +384,7 @@ class ProposalTest extends TestCase
 
     public function test_uses_soft_deletes(): void
     {
-        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Proposal()));
+        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Proposal));
     }
 
     public function test_value_casts_to_decimal(): void

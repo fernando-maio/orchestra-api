@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Category;
 use App\Models\Event;
 use App\Models\Organization;
 use App\Models\QuoteRequest;
@@ -12,6 +11,7 @@ use Tests\TestCase;
 class EventApiTest extends TestCase
 {
     private Organization $org;
+
     private User $admin;
 
     protected function setUp(): void

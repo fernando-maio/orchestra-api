@@ -3,10 +3,10 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Category;
+use App\Models\Event;
 use App\Models\Organization;
 use App\Models\Proposal;
 use App\Models\QuoteRequest;
-use App\Models\Event;
 use App\Models\Vendor;
 use Tests\TestCase;
 

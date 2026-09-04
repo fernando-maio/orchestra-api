@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\BelongsToOrganization;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -171,7 +170,7 @@ class Vendor extends Model
 
     public function scopeInCategory(Builder $query, string $categoryId): Builder
     {
-        return $query->whereHas('categories', fn($q) => $q->where('categories.id', $categoryId));
+        return $query->whereHas('categories', fn ($q) => $q->where('categories.id', $categoryId));
     }
 
     /**
@@ -179,7 +178,7 @@ class Vendor extends Model
      */
     public function scopeWithinRadius(Builder $query, float $latitude, float $longitude, int $radiusKm): Builder
     {
-        $haversine = "(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))";
+        $haversine = '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))';
 
         return $query
             ->selectRaw("*, {$haversine} AS distance", [$latitude, $longitude, $latitude])
@@ -193,13 +192,13 @@ class Vendor extends Model
      */
     public function scopeEsgFiltered(Builder $query, array $filters): Builder
     {
-        if (!empty($filters['local'])) {
+        if (! empty($filters['local'])) {
             $query->where('is_local_business', true);
         }
-        if (!empty($filters['sustainable'])) {
+        if (! empty($filters['sustainable'])) {
             $query->where('is_sustainable', true);
         }
-        if (!empty($filters['minority_owned'])) {
+        if (! empty($filters['minority_owned'])) {
             $query->where('is_minority_owned', true);
         }
 
@@ -221,7 +220,7 @@ class Vendor extends Model
                 })
                 ->first();
 
-            if (!$doc) {
+            if (! $doc) {
                 return false;
             }
         }
@@ -242,6 +241,7 @@ class Vendor extends Model
             $this->average_rating = 0;
             $this->total_ratings = 0;
             $this->save();
+
             return;
         }
 

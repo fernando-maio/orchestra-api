@@ -26,7 +26,7 @@ class VendorResource extends JsonResource
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'service_radius_km' => $this->service_radius_km,
-            'logo_url' => $this->logo_path ? asset('storage/' . $this->logo_path) : null,
+            'logo_url' => $this->logo_path ? asset('storage/'.$this->logo_path) : null,
             'description' => $this->description,
             'accepts_urgent' => $this->accepts_urgent,
             'is_verified' => $this->is_verified,
@@ -49,7 +49,7 @@ class VendorResource extends JsonResource
             'contact_phone' => $this->contact_phone,
             // Relationships
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
-            'distance' => $this->when(isset($this->distance), fn() => round($this->distance, 2)),
+            'distance' => $this->when(isset($this->distance), fn () => round($this->distance, 2)),
             'organization' => new OrganizationResource($this->whenLoaded('organization')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

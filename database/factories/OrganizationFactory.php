@@ -6,7 +6,7 @@ use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Organization>
+ * @extends Factory<Organization>
  */
 class OrganizationFactory extends Factory
 {
@@ -16,7 +16,7 @@ class OrganizationFactory extends Factory
     {
         return [
             'name' => fake()->company(),
-            'legal_name' => fake()->company() . ' LTDA',
+            'legal_name' => fake()->company().' LTDA',
             'cnpj' => fake()->unique()->numerify('##.###.###/####-##'),
             'email' => fake()->unique()->companyEmail(),
             'phone' => fake()->phoneNumber(),

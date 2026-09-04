@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Organization;
 use App\Models\User;
 use Tests\TestCase;
 

@@ -126,6 +126,7 @@ class VendorRating extends Model
     public function getWeightedScore(): float
     {
         $weight = log10(($this->contract_value ?? 0) + 1);
+
         return $this->overall_rating * $weight;
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\Organization;
 use App\Models\User;
@@ -11,8 +12,11 @@ use Tests\TestCase;
 class MultiTenancyTest extends TestCase
 {
     private Organization $orgA;
+
     private Organization $orgB;
+
     private User $adminA;
+
     private User $adminB;
 
     protected function setUp(): void
@@ -208,7 +212,7 @@ class MultiTenancyTest extends TestCase
     public function test_created_vendor_belongs_to_user_organization(): void
     {
         $this->actingAs($this->adminA, 'sanctum');
-        $category = \App\Models\Category::factory()->create();
+        $category = Category::factory()->create();
 
         $response = $this->postJson('/api/vendors', [
             'trade_name' => 'Org A Vendor',

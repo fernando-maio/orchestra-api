@@ -100,7 +100,7 @@ class AdminDashboardController extends Controller
 
         // Taxa de conversão (cotações que viraram contratos)
         $totalQuotes = QuoteRequest::count();
-        $convertedQuotes = QuoteRequest::whereHas('proposals', fn($q) => $q->where('proposals.status', 'contracted'))->count();
+        $convertedQuotes = QuoteRequest::whereHas('proposals', fn ($q) => $q->where('proposals.status', 'contracted'))->count();
         $conversionRate = $totalQuotes > 0
             ? round(($convertedQuotes / $totalQuotes) * 100, 1)
             : 0;
@@ -111,7 +111,7 @@ class AdminDashboardController extends Controller
         $responseTimes = DB::table('proposals')
             ->join('quote_request_vendor', function ($join) {
                 $join->on('proposals.quote_request_id', '=', 'quote_request_vendor.quote_request_id')
-                     ->on('proposals.vendor_id', '=', 'quote_request_vendor.vendor_id');
+                    ->on('proposals.vendor_id', '=', 'quote_request_vendor.vendor_id');
             })
             ->whereNotNull('quote_request_vendor.sent_at')
             ->select('quote_request_vendor.sent_at', 'proposals.created_at')
@@ -338,7 +338,7 @@ class AdminDashboardController extends Controller
         $allStates = array_unique(array_merge(array_keys($organizations), array_keys($vendors)));
         sort($allStates);
 
-        return array_map(fn($state) => [
+        return array_map(fn ($state) => [
             'state' => $state,
             'organizations' => $organizations[$state] ?? 0,
             'vendors' => $vendors[$state] ?? 0,
@@ -355,7 +355,7 @@ class AdminDashboardController extends Controller
             ->orderByDesc('quote_requests_count')
             ->limit($limit)
             ->get()
-            ->map(fn($cat) => [
+            ->map(fn ($cat) => [
                 'id' => $cat->id,
                 'name' => $cat->name,
                 'icon' => $cat->icon,
@@ -410,14 +410,14 @@ class AdminDashboardController extends Controller
             ->each(function ($proposal) use (&$activities) {
                 $activities[] = [
                     'type' => 'proposal_approved',
-                    'message' => "Proposta aprovada: {$proposal->vendor?->trade_name} - R$ " . number_format($proposal->total_value, 2, ',', '.'),
+                    'message' => "Proposta aprovada: {$proposal->vendor?->trade_name} - R$ ".number_format($proposal->total_value, 2, ',', '.'),
                     'created_at' => $proposal->updated_at->toISOString(),
                     'entity_id' => $proposal->id,
                 ];
             });
 
         // Ordenar por data e limitar
-        usort($activities, fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
+        usort($activities, fn ($a, $b) => strcmp($b['created_at'], $a['created_at']));
 
         return array_slice($activities, 0, $limit);
     }

@@ -44,7 +44,7 @@ class EventService extends BaseService implements EventServiceInterface
     {
         $event = $this->eventRepository->getWithQuoteRequests($id);
 
-        if (!$event) {
+        if (! $event) {
             throw new ModelNotFoundException("Event not found with id: {$id}");
         }
 
@@ -64,7 +64,7 @@ class EventService extends BaseService implements EventServiceInterface
         ];
 
         $currentStatus = $event->status ?? 'draft';
-        if (!in_array($status, $allowedTransitions[$currentStatus] ?? [])) {
+        if (! in_array($status, $allowedTransitions[$currentStatus] ?? [])) {
             throw new \InvalidArgumentException(
                 "Não é possível alterar o status de '{$currentStatus}' para '{$status}'."
             );
@@ -86,7 +86,7 @@ class EventService extends BaseService implements EventServiceInterface
                 'actual_budget',
             ]);
 
-            $newEvent->name = $event->name . ' (cópia)';
+            $newEvent->name = $event->name.' (cópia)';
             $newEvent->status = 'draft';
             $newEvent->start_date = $event->start_date;
             $newEvent->end_date = $event->end_date;

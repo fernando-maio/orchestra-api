@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class OrganizationTest extends TestCase
@@ -227,6 +228,6 @@ class OrganizationTest extends TestCase
     {
         $org = Organization::factory()->trial()->create();
 
-        $this->assertInstanceOf(\Illuminate\Support\Carbon::class, $org->subscription_ends_at);
+        $this->assertInstanceOf(Carbon::class, $org->subscription_ends_at);
     }
 }

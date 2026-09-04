@@ -8,16 +8,17 @@ use App\Models\Proposal;
 use App\Models\QuoteRequest;
 use App\Models\User;
 use App\Models\Vendor;
-use App\Models\VendorRating;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class EventTest extends TestCase
 {
     private Organization $organization;
+
     private User $user;
 
     protected function setUp(): void
@@ -245,15 +246,15 @@ class EventTest extends TestCase
 
     public function test_uses_soft_deletes(): void
     {
-        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Event()));
+        $this->assertContains(SoftDeletes::class, class_uses_recursive(new Event));
     }
 
     public function test_date_casts(): void
     {
         $event = Event::factory()->forOrganization($this->organization, $this->user)->create();
 
-        $this->assertInstanceOf(\Illuminate\Support\Carbon::class, $event->start_date);
-        $this->assertInstanceOf(\Illuminate\Support\Carbon::class, $event->end_date);
+        $this->assertInstanceOf(Carbon::class, $event->start_date);
+        $this->assertInstanceOf(Carbon::class, $event->end_date);
     }
 
     public function test_required_categories_cast_to_array(): void

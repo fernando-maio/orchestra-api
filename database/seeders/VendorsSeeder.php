@@ -13,8 +13,9 @@ class VendorsSeeder extends Seeder
     {
         $organization = Organization::where('email', 'demo@orchestra.local')->first();
 
-        if (!$organization) {
+        if (! $organization) {
             $this->command->warn('Demo organization not found. Skipping vendors seeding.');
+
             return;
         }
 
@@ -262,7 +263,7 @@ class VendorsSeeder extends Seeder
                 $vendorData
             );
 
-            if (!empty($categoryIds)) {
+            if (! empty($categoryIds)) {
                 $vendor->categories()->syncWithoutDetaching($categoryIds);
             }
         }

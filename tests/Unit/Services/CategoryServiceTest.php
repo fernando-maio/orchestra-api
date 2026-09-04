@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Contracts\Services\CategoryServiceInterface;
 use App\Models\Category;
 use App\Services\CategoryService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Tests\TestCase;
 
 class CategoryServiceTest extends TestCase
@@ -131,7 +132,7 @@ class CategoryServiceTest extends TestCase
 
     public function test_toggle_active_throws_when_category_not_found(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->service->toggleActive('nonexistent-uuid');
     }

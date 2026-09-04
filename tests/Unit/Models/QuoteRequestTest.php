@@ -18,7 +18,9 @@ use Tests\TestCase;
 class QuoteRequestTest extends TestCase
 {
     private Organization $organization;
+
     private User $user;
+
     private Event $event;
 
     protected function setUp(): void
@@ -337,7 +339,7 @@ class QuoteRequestTest extends TestCase
 
     public function test_uses_soft_deletes(): void
     {
-        $this->assertContains(SoftDeletes::class, class_uses_recursive(new QuoteRequest()));
+        $this->assertContains(SoftDeletes::class, class_uses_recursive(new QuoteRequest));
     }
 
     public function test_is_urgent_cast_to_boolean(): void

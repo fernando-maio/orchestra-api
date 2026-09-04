@@ -86,7 +86,7 @@ class VendorDocument extends Model
 
     public function isExpiringSoon(int $days = 30): bool
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
 

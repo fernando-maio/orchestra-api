@@ -61,14 +61,14 @@ class HasUuidTest extends TestCase
 
     public function test_key_type_is_string(): void
     {
-        $organization = new Organization();
+        $organization = new Organization;
 
         $this->assertEquals('string', $organization->getKeyType());
     }
 
     public function test_key_type_is_string_for_user(): void
     {
-        $user = new User();
+        $user = new User;
 
         $this->assertEquals('string', $user->getKeyType());
     }
@@ -79,21 +79,21 @@ class HasUuidTest extends TestCase
 
     public function test_not_incrementing(): void
     {
-        $organization = new Organization();
+        $organization = new Organization;
 
         $this->assertFalse($organization->getIncrementing());
     }
 
     public function test_not_incrementing_for_user(): void
     {
-        $user = new User();
+        $user = new User;
 
         $this->assertFalse($user->getIncrementing());
     }
 
     public function test_not_incrementing_for_vendor(): void
     {
-        $vendor = new Vendor();
+        $vendor = new Vendor;
 
         $this->assertFalse($vendor->getIncrementing());
     }

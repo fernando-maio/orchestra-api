@@ -20,7 +20,7 @@ return new class extends Migration
                 'negative_certificate', // Certidão negativa
                 'contract',            // Contrato social
                 'technical_cert',      // Certificação técnica
-                'other'
+                'other',
             ]);
 
             $table->string('name');

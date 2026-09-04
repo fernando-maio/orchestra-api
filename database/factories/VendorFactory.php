@@ -7,7 +7,7 @@ use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Vendor>
+ * @extends Factory<Vendor>
  */
 class VendorFactory extends Factory
 {
@@ -17,7 +17,7 @@ class VendorFactory extends Factory
     {
         return [
             'trade_name' => fake()->company(),
-            'legal_name' => fake()->company() . ' LTDA',
+            'legal_name' => fake()->company().' LTDA',
             'cnpj' => fake()->unique()->numerify('##.###.###/####-##'),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),

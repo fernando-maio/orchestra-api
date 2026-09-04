@@ -24,27 +24,27 @@ class VendorRepository extends BaseRepository implements VendorRepositoryInterfa
         $query = $this->model->with('categories');
 
         // Search by name or CNPJ
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('trade_name', 'like', "%{$search}%")
-                  ->orWhere('legal_name', 'like', "%{$search}%")
-                  ->orWhere('cnpj', 'like', "%{$search}%");
+                    ->orWhere('legal_name', 'like', "%{$search}%")
+                    ->orWhere('cnpj', 'like', "%{$search}%");
             });
         }
 
         // Filter by category
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->inCategory($filters['category_id']);
         }
 
         // Filter by city
-        if (!empty($filters['city'])) {
+        if (! empty($filters['city'])) {
             $query->where('city', $filters['city']);
         }
 
         // Filter by state
-        if (!empty($filters['state'])) {
+        if (! empty($filters['state'])) {
             $query->where('state', $filters['state']);
         }
 
@@ -59,25 +59,25 @@ class VendorRepository extends BaseRepository implements VendorRepositoryInterfa
         }
 
         // Filter by urgent acceptance
-        if (!empty($filters['accepts_urgent'])) {
+        if (! empty($filters['accepts_urgent'])) {
             $query->acceptsUrgent();
         }
 
         // ESG filters
-        if (!empty($filters['esg'])) {
+        if (! empty($filters['esg'])) {
             $query->esgFiltered($filters['esg']);
         }
 
         // Marketplace filters
-        if (!empty($filters['approval_status'])) {
+        if (! empty($filters['approval_status'])) {
             $query->where('approval_status', $filters['approval_status']);
         }
 
-        if (!empty($filters['source'])) {
+        if (! empty($filters['source'])) {
             $query->where('source', $filters['source']);
         }
 
-        if (!empty($filters['subscription_tier'])) {
+        if (! empty($filters['subscription_tier'])) {
             $query->where('subscription_tier', $filters['subscription_tier']);
         }
 
@@ -103,12 +103,12 @@ class VendorRepository extends BaseRepository implements VendorRepositoryInterfa
             ->with('categories');
 
         // Apply category filter if provided
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->inCategory($filters['category_id']);
         }
 
         // ESG filters
-        if (!empty($filters['esg'])) {
+        if (! empty($filters['esg'])) {
             $query->esgFiltered($filters['esg']);
         }
 

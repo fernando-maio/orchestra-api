@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Event;
 use App\Models\Proposal;
 use App\Models\QuoteRequest;
@@ -72,8 +71,8 @@ class DashboardController extends Controller
         if ($organizationId) {
             $eventsQuery->where('organization_id', $organizationId);
             $vendorsQuery->where('organization_id', $organizationId);
-            $quotesQuery->whereHas('event', fn($q) => $q->where('organization_id', $organizationId));
-            $proposalsQuery->whereHas('quoteRequest.event', fn($q) => $q->where('organization_id', $organizationId));
+            $quotesQuery->whereHas('event', fn ($q) => $q->where('organization_id', $organizationId));
+            $proposalsQuery->whereHas('quoteRequest.event', fn ($q) => $q->where('organization_id', $organizationId));
         }
 
         // Eventos ativos
@@ -153,7 +152,7 @@ class DashboardController extends Controller
             $query->where('organization_id', $organizationId);
         }
 
-        return $query->get()->map(fn($event) => [
+        return $query->get()->map(fn ($event) => [
             'id' => $event->id,
             'name' => $event->name,
             'start_date' => $event->start_date->toDateString(),
@@ -175,10 +174,10 @@ class DashboardController extends Controller
             ->limit($limit);
 
         if ($organizationId) {
-            $query->whereHas('quoteRequest.event', fn($q) => $q->where('organization_id', $organizationId));
+            $query->whereHas('quoteRequest.event', fn ($q) => $q->where('organization_id', $organizationId));
         }
 
-        return $query->get()->map(fn($proposal) => [
+        return $query->get()->map(fn ($proposal) => [
             'id' => $proposal->id,
             'vendor_name' => $proposal->vendor?->trade_name,
             'event_name' => $proposal->quoteRequest?->event?->name,
@@ -204,7 +203,7 @@ class DashboardController extends Controller
             $query->where('organization_id', $organizationId);
         }
 
-        return $query->get()->map(fn($vendor) => [
+        return $query->get()->map(fn ($vendor) => [
             'id' => $vendor->id,
             'trade_name' => $vendor->trade_name,
             'city' => $vendor->city,
@@ -228,12 +227,12 @@ class DashboardController extends Controller
         }
 
         $events = Event::where('status', 'active')
-            ->when($organizationId, fn($q) => $q->where('organization_id', $organizationId))
+            ->when($organizationId, fn ($q) => $q->where('organization_id', $organizationId))
             ->get()
             ->map(function ($event) {
                 // Calcular gasto realizado (propostas aprovadas/contratadas)
                 $spent = Proposal::whereIn('proposals.status', ['approved', 'contracted'])
-                    ->whereHas('quoteRequest', fn($q) => $q->where('event_id', $event->id))
+                    ->whereHas('quoteRequest', fn ($q) => $q->where('event_id', $event->id))
                     ->sum('total_value');
 
                 $budget = (float) ($event->estimated_budget ?? 0);
@@ -288,7 +287,7 @@ class DashboardController extends Controller
         }
 
         $query = Proposal::query()
-            ->when($organizationId, fn($q) => $q->whereHas('quoteRequest.event', fn($eq) => $eq->where('organization_id', $organizationId)));
+            ->when($organizationId, fn ($q) => $q->whereHas('quoteRequest.event', fn ($eq) => $eq->where('organization_id', $organizationId)));
 
         $statusCounts = $query->selectRaw('status, COUNT(*) as count, SUM(total_value) as total_value')
             ->groupBy('status')
@@ -336,7 +335,7 @@ class DashboardController extends Controller
             ->join('categories', 'quote_requests.category_id', '=', 'categories.id')
             ->join('events', 'quote_requests.event_id', '=', 'events.id')
             ->whereIn('proposals.status', ['approved', 'contracted'])
-            ->when($organizationId, fn($q) => $q->where('events.organization_id', $organizationId))
+            ->when($organizationId, fn ($q) => $q->where('events.organization_id', $organizationId))
             ->selectRaw('categories.id, categories.name, categories.icon, categories.color, SUM(proposals.total_value) as total, COUNT(proposals.id) as count')
             ->groupBy('categories.id', 'categories.name', 'categories.icon', 'categories.color')
             ->orderByDesc('total')
@@ -344,7 +343,7 @@ class DashboardController extends Controller
 
         $total = $spending->sum('total');
 
-        $data = $spending->map(fn($item) => [
+        $data = $spending->map(fn ($item) => [
             'id' => $item->id,
             'name' => $item->name,
             'icon' => $item->icon,
@@ -385,7 +384,7 @@ class DashboardController extends Controller
                 ->whereYear('proposals.created_at', $date->year);
 
             if ($organizationId) {
-                $query->whereHas('quoteRequest.event', fn($q) => $q->where('organization_id', $organizationId));
+                $query->whereHas('quoteRequest.event', fn ($q) => $q->where('organization_id', $organizationId));
             }
 
             $spent = $query->sum('total_value');

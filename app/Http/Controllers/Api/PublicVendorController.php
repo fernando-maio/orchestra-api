@@ -106,6 +106,7 @@ class PublicVendorController extends Controller
         $vendor = DB::transaction(function () use ($validated, $categoryIds) {
             $vendor = Vendor::create($validated);
             $vendor->categories()->attach($categoryIds);
+
             return $vendor;
         });
 

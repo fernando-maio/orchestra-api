@@ -2,25 +2,22 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-
-// Category
 use App\Contracts\Repositories\CategoryRepositoryInterface;
-use App\Contracts\Services\CategoryServiceInterface;
-use App\Repositories\CategoryRepository;
-use App\Services\CategoryService;
-
-// Vendor
-use App\Contracts\Repositories\VendorRepositoryInterface;
-use App\Contracts\Services\VendorServiceInterface;
-use App\Repositories\VendorRepository;
-use App\Services\VendorService;
-
-// Event
+// Category
 use App\Contracts\Repositories\EventRepositoryInterface;
+use App\Contracts\Repositories\VendorRepositoryInterface;
+use App\Contracts\Services\CategoryServiceInterface;
 use App\Contracts\Services\EventServiceInterface;
+// Vendor
+use App\Contracts\Services\VendorServiceInterface;
+use App\Repositories\CategoryRepository;
 use App\Repositories\EventRepository;
+use App\Repositories\VendorRepository;
+// Event
+use App\Services\CategoryService;
 use App\Services\EventService;
+use App\Services\VendorService;
+use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
 {

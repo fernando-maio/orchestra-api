@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Event;
 use App\Models\Organization;
 use App\Models\Vendor;
 use Tests\TestCase;

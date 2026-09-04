@@ -45,11 +45,11 @@ class EventResource extends JsonResource
             ),
             'budget_progress' => $this->when(
                 method_exists($this->resource, 'getBudgetProgress'),
-                fn() => round($this->getBudgetProgress(), 2)
+                fn () => round($this->getBudgetProgress(), 2)
             ),
             'vendor_progress' => $this->when(
                 method_exists($this->resource, 'getVendorProgress'),
-                fn() => $this->getVendorProgress()
+                fn () => $this->getVendorProgress()
             ),
             'can_be_edited' => $this->canBeEdited(),
             'days_until_event' => $this->start_date

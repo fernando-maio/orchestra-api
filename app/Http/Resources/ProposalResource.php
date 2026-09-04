@@ -29,10 +29,10 @@ class ProposalResource extends JsonResource
             'reviewed_by' => new UserResource($this->whenLoaded('reviewer')),
             'attachments' => $this->when(
                 $this->relationLoaded('attachments'),
-                fn() => $this->attachments->map(fn($a) => [
+                fn () => $this->attachments->map(fn ($a) => [
                     'id' => $a->id,
                     'name' => $a->name,
-                    'url' => asset('storage/' . $a->path),
+                    'url' => asset('storage/'.$a->path),
                 ])
             ),
             'created_at' => $this->created_at?->toISOString(),

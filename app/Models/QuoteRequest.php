@@ -100,7 +100,7 @@ class QuoteRequest extends Model
 
     public function canAcceptProposals(): bool
     {
-        if (!$this->isOpen()) {
+        if (! $this->isOpen()) {
             return false;
         }
 

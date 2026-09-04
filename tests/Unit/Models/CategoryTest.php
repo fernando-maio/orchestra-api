@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -155,8 +156,8 @@ class CategoryTest extends TestCase
     public function test_category_uses_soft_deletes(): void
     {
         $this->assertContains(
-            \Illuminate\Database\Eloquent\SoftDeletes::class,
-            class_uses_recursive(new Category())
+            SoftDeletes::class,
+            class_uses_recursive(new Category)
         );
     }
 
