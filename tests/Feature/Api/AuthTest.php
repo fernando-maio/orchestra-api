@@ -131,6 +131,40 @@ class AuthTest extends TestCase
 
     // ─── ME ───────────────────────────────────────────────────────────
 
+    // ─── RATE LIMITING ────────────────────────────────────────────────
+
+    public function test_login_is_rate_limited_after_configured_attempts(): void
+    {
+        config(['auth.login_max_attempts' => 3]);
+
+        $payload = ['email' => 'naoexiste@example.com', 'password' => 'errada'];
+
+        // As tentativas dentro do limite devem responder 422 (credenciais
+        // invalidas), nunca 429.
+        for ($i = 1; $i <= 3; $i++) {
+            $this->postJson('/api/login', $payload)
+                ->assertStatus(422, "tentativa {$i} deveria passar pelo limiter");
+        }
+
+        // A seguinte estoura o limite.
+        $this->postJson('/api/login', $payload)->assertStatus(429);
+    }
+
+    public function test_login_allows_five_attempts_before_throttling_by_default(): void
+    {
+        // Protege o limite que vale em producao. O phpunit.xml fixa
+        // LOGIN_MAX_ATTEMPTS=5 para que este teste nao dependa do .env da
+        // maquina de quem roda a suite.
+        $payload = ['email' => 'naoexiste@example.com', 'password' => 'errada'];
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->postJson('/api/login', $payload)
+                ->assertStatus(422, "tentativa {$i} de 5 nao deveria ser bloqueada");
+        }
+
+        $this->postJson('/api/login', $payload)->assertStatus(429);
+    }
+
     public function test_me_returns_authenticated_user(): void
     {
         $user = $this->actingAsSuperAdmin();

@@ -114,4 +114,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | Tentativas de login permitidas por minuto, por IP. O default de 5 vale
+    | para producao. Em desenvolvimento pode ser afrouxado via LOGIN_MAX_ATTEMPTS
+    | para nao atrapalhar a suite E2E, que consome 3 logins por execucao.
+    |
+    */
+
+    'login_max_attempts' => (int) env('LOGIN_MAX_ATTEMPTS', 5),
+
 ];

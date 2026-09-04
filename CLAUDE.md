@@ -806,6 +806,26 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 
 ## Histórico de Modificações
 
+### 2026-09-04 - Suíte E2E, Pint e Vitest 5
+- **Suíte E2E passou a fechar 21/21 em paralelo** (antes não fechava de jeito
+  nenhum). Um único login por execução via projeto `setup` + `storageState`,
+  no lugar de `loginViaApi` em todo `beforeEach`
+- Corrigidos 3 bugs de teste: `addInitScript` reinjetando a sessão após
+  `clearAuth`; race lendo `page.url()` antes da navegação client-side; e
+  asserções de rota esperando ID numérico num projeto que usa UUID
+- `login_max_attempts` virou configurável (`config/auth.php`), com limiter
+  nomeado no `AppServiceProvider`. Default 5/min mantido em produção; dev usa
+  30 via `LOGIN_MAX_ATTEMPTS`. **+2 testes** cobrindo o limite, que não tinha
+  nenhum
+- `phpunit.xml` passou a fixar `LOGIN_MAX_ATTEMPTS`, tornando a suíte
+  independente do `.env` de cada máquina
+- Pint aplicado em 69 arquivos (só estilo, 483 testes seguiram verdes)
+- Vitest 4.1.11 → 5.0.0
+- **Achado em aberto**: `Vendor` nunca aplicou o trait `BelongsToOrganization`
+  (o Pint removeu o import morto). Fornecedores são globais entre organizações
+  — correto pelo modelo de marketplace, mas dois testes se chamam
+  `org_a_user_cannot_see_org_b_vendors` e não afirmam nada além de `assertOk()`
+
 ### 2026-09-02 - Atualização de Infraestrutura
 - `npm install` -> `npm ci` no boot do container do frontend (instalação
   reprodutível a partir do `package-lock.json`)
@@ -921,30 +941,46 @@ docker exec orchestra-php php artisan config:clear
 - Não usar `@apply btn` dentro de `.btn-primary` (referências circulares)
 - Usar `@tailwindcss/vite` plugin ao invés de postcss
 
-### Suíte E2E (Playwright) falha em massa com HTTP 429
-`playwright.config.ts` usa `fullyParallel: true` sem limite de workers, e quase todo
-spec chama `loginViaApi` no `beforeEach`. Isso estoura o **rate limit de login
-(5 req/min)** e a partir do 6º teste o `/api/login` devolve 429 (HTML "Too Many
-Requests"), não JSON. Não é problema do app. Para rodar a suíte:
+### Suíte E2E: como a autenticação funciona
+A suíte faz **um único login** por execução. O projeto `setup`
+(`e2e/auth.setup.ts`) autentica e grava a sessão em `e2e/.auth/admin.json`
+(gitignored); os demais testes herdam via `storageState`, declarado como
+`dependencies: ['setup']` no `playwright.config.ts`.
 
-```bash
-docker exec orchestra-redis redis-cli FLUSHALL   # zera o limiter
-npx playwright test --workers=1 <arquivo.spec.ts> # um spec por vez
+Isso existe por causa do rate limit do `/api/login`. Antes cada spec chamava
+`loginViaApi` no `beforeEach`, a suíte consumia ~18 logins e, a partir do 6º
+teste, recebia 429 (HTML "Too Many Requests") em vez de JSON. Hoje são 3
+logins por execução: o do `setup`, o do teste de login pela UI e o de
+credenciais inválidas.
+
+Testes que precisam começar **deslogados** descartam a sessão herdada:
+
+```ts
+test.describe('Authentication (sem sessao)', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
 ```
 
-Correção definitiva pendente: usar um token compartilhado entre os testes, ou
-isentar o ambiente de teste do rate limit.
+> Não use `page.addInitScript` para injetar a sessão: ele re-executa a cada
+> navegação, então qualquer `page.goto` posterior a um `clearAuth` reinjeta o
+> token e a sessão nunca é encerrada de fato. Use `page.evaluate`.
 
-### Dois testes E2E falham por bug do próprio teste (não do app)
-- `auth.spec.ts › logout clears session`: `loginViaApi` injeta o token via
-  `page.addInitScript`, que **re-executa a cada navegação**. O `clearAuth` limpa o
-  localStorage, mas o `page.goto('/')` seguinte re-injeta o token — a sessão nunca
-  é de fato encerrada. Corrigir usando `page.context().clearCookies()` +
-  navegação sem o init script, ou não usar `addInitScript` para isso.
-- `navigation.spec.ts › 404 page shows`: race. `waitForLoadState('networkidle')`
-  retorna antes da navegação client-side do router terminar, e o `page.url()` é
-  lido cedo demais. Verificado manualmente: o clique em "Voltar ao início" navega
-  corretamente para `/login?redirect=/`. Corrigir com `await page.waitForURL(...)`.
+> Em navegação client-side não há tráfego de rede para aguardar, então
+> `waitForLoadState('networkidle')` retorna antes de o router terminar e o
+> `page.url()` sai desatualizado. Use `page.waitForURL(...)`.
+
+> IDs são **UUID** (trait `HasUuid`), não inteiros. Para asserções de rota de
+> detalhe use `detailRoute('events')` de `e2e/helpers/patterns.ts`, e não
+> padrões como `/\/events\/\d+/`, que nunca casam.
+
+### Rate limit de login
+`config/auth.php` expõe `login_max_attempts`, com **default 5 por minuto por
+IP** — o valor que vale em produção. O limiter nomeado `login` é registrado no
+`AppServiceProvider` e resolvido a cada requisição, para que um `route:cache`
+gerado em outro ambiente não congele o valor.
+
+Em desenvolvimento o `.env` deste projeto usa `LOGIN_MAX_ATTEMPTS=30`, para
+permitir rodar a suíte E2E várias vezes seguidas. O `phpunit.xml` fixa o valor
+em `5`, de modo que os testes não dependam do `.env` de cada máquina.
 
 ### npm instala versões antigas mesmo após editar package.json
 O serviço `frontend` usa um volume **anônimo** em `/app/node_modules`, e o Docker
