@@ -1,0 +1,17 @@
+# O contexto de build passou a ser a raiz do backend (o alvo prod copia o
+# codigo). Sem isso o Docker enviaria vendor/ e storage/ inteiros a cada build.
+.git
+.gitignore
+vendor
+node_modules
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests
+phpunit.xml
+.env
+.env.*
+!.env.example
+docker-compose*.yml
+*.md

@@ -597,9 +597,60 @@ APP_ENV=production -> env=production | url=https://api.orchestra.example... | de
 > proposital: segredos reais não vão para o repositório. Os campos marcados como
 > `# ALTERAR` devem vir do cofre de segredos do deploy.
 
-> **Este compose é de desenvolvimento**, mesmo com `APP_ENV=production`: ele monta
-> o código como volume (`.:/var/www/html`) em vez de copiá-lo para a imagem. Um
-> deploy real precisa de um compose/Dockerfile próprios, sem bind mount.
+> **`docker-compose.yml` é de desenvolvimento**, mesmo com `APP_ENV=production`:
+> ele monta o código como volume. Para o deploy de verdade use o
+> `docker-compose.prod.yml`, descrito abaixo.
+
+### Stack de produção
+
+```bash
+cp .env.deploy.example .env.deploy     # variaveis do Compose (segredos do banco, portas)
+# .env.production carrega a config da aplicacao
+docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --build
+docker exec orchestra-prod-php php artisan migrate --force
+```
+
+> **O `--env-file` não é opcional.** Sem ele o Compose usaria o `.env` de
+> desenvolvimento deste diretório para interpolar as variáveis, injetando
+> credenciais de dev na stack de produção.
+
+Há **dois** arquivos de ambiente, com papéis distintos:
+
+| Arquivo | Quem lê | Para quê |
+|---|---|---|
+| `.env.production` | Laravel, em runtime | Config da aplicação (APP_KEY, DB, mail, CORS) |
+| `.env.deploy` | Docker Compose, antes de subir | Senha root do MySQL, portas, `VITE_API_URL` |
+
+Precisam ser separados porque o Compose interpola as variáveis dele **antes**
+de qualquer container existir — inclusive para criar o banco.
+
+Diferenças em relação ao ambiente de desenvolvimento:
+
+| | Desenvolvimento | Produção |
+|---|---|---|
+| Código | bind mount (`.:/var/www/html`) | copiado para a imagem |
+| Frontend | Vite dev server (Node) | estáticos servidos por nginx (~104MB) |
+| Dependências | inclui dev (phpunit, sail) | `--no-dev`, sem `tests/` |
+| Autoloader | padrão | `--optimize --classmap-authoritative` |
+| OPcache | `validate_timestamps=On` | `Off` + JIT tracing |
+| Caches | nenhum | config, rotas e eventos, gerados no entrypoint |
+| MySQL/Redis | portas expostas | sem porta no host |
+| E-mail | Mailpit | SMTP real |
+| `expose_php` | On | Off |
+
+> O `docker/php/Dockerfile` tem **um `base` compartilhado** e dois alvos, `dev`
+> e `prod`. As extensões PHP ficam só no `base`, de propósito: com dois
+> Dockerfiles separados, uma correção como o retry do `pecl` teria que ser
+> mantida em dois lugares e as versões acabariam divergindo.
+
+> Os caches (`config:cache`, `route:cache`, `event:cache`) são gerados no
+> **entrypoint**, não no build. `config:cache` congela os valores do `.env`, e o
+> `.env` só existe em runtime — gerar no build assaria a configuração de quem
+> buildou dentro da imagem.
+
+> **Ainda não existe um ambiente de produção real.** A stack acima foi validada
+> apenas localmente (portas 8080/8081), e o `.env.production` está preenchido
+> com valores dessa simulação.
 
 ---
 
@@ -806,7 +857,21 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 
 ## Histórico de Modificações
 
-### 2026-09-04 - Suíte E2E, Pint e Vitest 5
+### 2026-09-04 - Suíte E2E, Pint, Vitest 5 e deploy de produção
+- **Criada a stack de produção**: `docker-compose.prod.yml`, `Dockerfile` do
+  frontend (build estático servido por nginx, 104MB) e configs de OPcache/PHP
+  para produção. Código copiado para a imagem, sem bind mount; `--no-dev`;
+  autoloader com `--classmap-authoritative`; caches gerados no entrypoint
+- `docker/php/Dockerfile` reestruturado em stages (`base` → `dev` | `prod`),
+  para que as extensões PHP não sejam mantidas em dois lugares
+- Separados `.env.production` (Laravel, runtime) e `.env.deploy` (Compose,
+  antes de subir). O `--env-file` é obrigatório: sem ele o Compose leria o
+  `.env` de desenvolvimento e injetaria credenciais de dev em produção
+- **Validado apenas localmente** (portas 8080/8081): `Environment=production`,
+  `Debug=OFF`, config/rotas/eventos em cache, `phpunit`/`sail`/`tests` fora da
+  imagem, migrations, seeders e login funcionando. **Não há ambiente de
+  produção real ainda**
+
 - **Suíte E2E passou a fechar 21/21 em paralelo** (antes não fechava de jeito
   nenhum). Um único login por execução via projeto `setup` + `storageState`,
   no lugar de `loginViaApi` em todo `beforeEach`

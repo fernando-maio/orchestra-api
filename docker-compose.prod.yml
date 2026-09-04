@@ -1,0 +1,118 @@
+# =============================================================================
+# Stack de PRODUCAO.
+#
+#     docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --build
+#
+# O --env-file e obrigatorio. Sem ele o Compose usaria o .env de
+# desenvolvimento deste diretorio para interpolar as variaveis, injetando
+# credenciais de dev na stack de producao.
+#
+# Diferencas em relacao ao docker-compose.yml (desenvolvimento):
+#   - o codigo e COPIADO para dentro das imagens; nao ha bind mount, entao um
+#     deploy exige rebuild e nao aceita edicao de arquivo em disco
+#   - o frontend e servido como estatico por nginx, sem Vite nem Node no runtime
+#   - MySQL e Redis nao expoem portas para o host
+#   - nao ha Mailpit: producao usa SMTP real, configurado no .env.production
+#   - a config vem de .env.production (ver a secao "Ambiente de Producao" no
+#     CLAUDE.md para como o Laravel escolhe esse arquivo)
+# =============================================================================
+name: orchestra-prod
+
+services:
+  nginx:
+    image: nginx:1.30-alpine
+    container_name: orchestra-prod-nginx
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - app-public:/var/www/html/public:ro
+    depends_on:
+      - php
+    networks:
+      - orchestra-prod
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: prod
+    image: orchestra-php:prod
+    container_name: orchestra-prod-php
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+    volumes:
+      # O .dockerignore mantem os .env fora da imagem de proposito: segredos nao
+      # sao assados no build. O arquivo entra aqui, em runtime, somente leitura.
+      - ./.env.production:/var/www/html/.env.production:ro
+      # Compartilha o public/ da imagem com o nginx, que precisa dos arquivos
+      # estaticos para servir sem passar pelo PHP.
+      - app-public:/var/www/html/public
+      - app-storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - orchestra-prod
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api}
+    image: orchestra-frontend:prod
+    container_name: orchestra-prod-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+    networks:
+      - orchestra-prod
+
+  mysql:
+    image: mysql:8.4
+    container_name: orchestra-prod-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE:-orchestra}
+      MYSQL_USER: ${DB_USERNAME:-orchestra}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - orchestra-prod
+
+  redis:
+    image: redis:8-alpine
+    container_name: orchestra-prod-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orchestra-prod
+
+networks:
+  orchestra-prod:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  app-storage:
+  app-public:

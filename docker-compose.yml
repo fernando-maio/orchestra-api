@@ -18,8 +18,11 @@ services:
   # PHP-FPM - Laravel Backend
   php:
     build:
-      context: ./docker/php
-      dockerfile: Dockerfile
+      # Contexto e a raiz do backend (nao ./docker/php) porque o alvo `prod`
+      # do mesmo Dockerfile copia o codigo da aplicacao. Ver .dockerignore.
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
     container_name: orchestra-php
     # O Laravel le APP_ENV do ambiente do processo (antes de carregar o .env) para
     # decidir se usa .env.<APP_ENV>. Com 'production' aqui, ele carrega .env.production;
