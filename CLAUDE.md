@@ -541,6 +541,12 @@ No Tailwind v4:
 |-------|-------|------|
 | admin@orchestra.local | password | super-admin |
 | demo@orchestra.local | password | admin |
+| organizer@orchestra.local | password | organizer |
+| viewer@orchestra.local | password | viewer |
+
+Os três últimos pertencem à mesma organização (Empresa Demo), para que a
+diferença observada entre eles seja de **permissão** e não de multi-tenancy.
+O super-admin não pertence a organização nenhuma.
 
 ### Permissões
 

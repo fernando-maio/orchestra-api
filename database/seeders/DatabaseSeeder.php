@@ -53,6 +53,31 @@ class DatabaseSeeder extends Seeder
         );
         $demoAdmin->assignRole('admin');
 
+        // Usuarios para testar os demais perfis. Todos na mesma organizacao do
+        // demo, para que a diferenca observada seja de permissao e nao de
+        // multi-tenancy.
+        $demoOrganizer = User::firstOrCreate(
+            ['email' => 'organizer@orchestra.local'],
+            [
+                'organization_id' => $demoOrg->id,
+                'name' => 'Organizador Demo',
+                'password' => 'password',
+                'is_active' => true,
+            ]
+        );
+        $demoOrganizer->assignRole('organizer');
+
+        $demoViewer = User::firstOrCreate(
+            ['email' => 'viewer@orchestra.local'],
+            [
+                'organization_id' => $demoOrg->id,
+                'name' => 'Visualizador Demo',
+                'password' => 'password',
+                'is_active' => true,
+            ]
+        );
+        $demoViewer->assignRole('viewer');
+
         // Seed vendors and events (depends on organization)
         $this->call([
             VendorsSeeder::class,
