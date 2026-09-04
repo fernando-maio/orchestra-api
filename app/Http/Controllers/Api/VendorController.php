@@ -10,6 +10,7 @@ use App\Http\Resources\VendorResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
@@ -144,6 +145,28 @@ class VendorController extends Controller
     /**
      * Marca fornecedor como verificado
      */
+    /**
+     * Altera o plano de patrocinio do fornecedor (Free / Destaque / Premium).
+     *
+     * Existe separado do update para permitir a troca direto na listagem, sem
+     * abrir o cadastro inteiro e sem exigir os campos obrigatorios dele.
+     */
+    public function updateSubscriptionTier(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('vendors.update');
+
+        $data = $request->validate([
+            'subscription_tier' => ['required', Rule::in(['free', 'featured', 'premium'])],
+        ]);
+
+        $vendor = $this->vendorService->update($id, $data);
+
+        return response()->json([
+            'message' => 'Plano do fornecedor atualizado com sucesso.',
+            'data' => new VendorResource($vendor),
+        ]);
+    }
+
     public function verify(string $id): JsonResponse
     {
         $this->authorize('vendors.verify');

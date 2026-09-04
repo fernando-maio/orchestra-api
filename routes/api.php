@@ -33,6 +33,8 @@ Route::prefix('public/vendors')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/auth/password', [AuthController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logout-all', [AuthController::class, 'logoutAll']);
 
@@ -65,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('vendors', VendorController::class);
     Route::post('/vendors/{vendor}/toggle-active', [VendorController::class, 'toggleActive']);
     Route::post('/vendors/{vendor}/verify', [VendorController::class, 'verify']);
+    Route::post('/vendors/{vendor}/subscription-tier', [VendorController::class, 'updateSubscriptionTier']);
     Route::post('/vendors/{vendor}/approve', [VendorController::class, 'approve']);
     Route::post('/vendors/{vendor}/reject', [VendorController::class, 'reject']);
     Route::get('/vendors/{vendor}/compliance', [VendorController::class, 'compliance']);

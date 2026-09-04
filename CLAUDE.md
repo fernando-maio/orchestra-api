@@ -771,7 +771,7 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [x] UUIDs como primary keys em todas as tabelas
 
 #### Backend - APIs
-- [x] AuthController (login, logout, me, profile, password)
+- [x] AuthController (login, logout, me, profile, password)  <!-- profile/password implementados só em 2026-09-04 -->
 - [x] CategoryController + Service + Repository (CRUD, toggle, reorder, SoftDeletes)
 - [x] VendorController + Service + Repository (CRUD, filtros, geolocation, approval, compliance)
 - [x] EventController + Service + Repository (CRUD, status transitions, duplicate, statistics)
@@ -826,6 +826,9 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [ ] Price Lock (trava de valor)
 
 ### Fase 3 - Gestão Completa de Eventos
+- [ ] OrganizationController (CRUD) - a tela de Organizações existe mas é
+      somente leitura; as permissões `organizations.create/update/delete` já
+      estão no seeder e nada as implementa
 - [ ] EventPhase - Fases do evento
 - [ ] EventTask - Checklist de tarefas
 - [ ] EventTimeline - Cronograma de entregas
@@ -846,7 +849,31 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [ ] Bloqueio de aprovação se compliance irregular
 - [ ] Histórico de compliance por fornecedor
 
-### Fase 6 - Integrações e Escala
+### Fase 6 - Internacionalização (i18n)
+
+Hoje a UI está **somente em pt_BR**, com as strings escritas direto nos
+templates. A ordem de idiomas planejada é **Inglês, Francês e Espanhol**.
+
+O que precisa acontecer quando essa fase começar:
+
+- [ ] Instalar `vue-i18n` e configurar o locale padrão como `pt-BR`
+- [ ] Extrair as strings dos templates para `src/locales/pt-BR.json`
+- [ ] Criar `en.json`, `fr.json` e `es.json`
+- [ ] Seletor de idioma, com a escolha persistida por usuário
+- [ ] Backend: usar `lang/{locale}` para as mensagens de validação e de erro
+      da API (`APP_LOCALE` já está em `pt_BR`)
+- [ ] Formatação de data, número e moeda por locale (`Intl`), hoje assumindo
+      pt_BR implicitamente
+- [ ] Traduzir os dados semeados (nomes de categoria) ou separar rótulo de
+      chave — hoje `categories.name` guarda o texto exibido em português
+
+> **Por que não foi feito junto com a correção de acentuação (2026-09-04)**:
+> extrair todas as strings para arquivos de locale toca praticamente todas as
+> views e não muda nada visível enquanto só existe um idioma. A decisão foi
+> corrigir o pt_BR agora e deixar a extração para quando o segundo idioma
+> entrar de fato.
+
+### Fase 7 - Integrações e Escala
 - [ ] Webhooks para ERPs (SAP, Microsiga)
 - [ ] Exportação CSV/JSON formatada
 - [ ] API pública para integrações
@@ -856,6 +883,45 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 ---
 
 ## Histórico de Modificações
+
+### 2026-09-04 - Correções de UI e acentuação
+
+Seis problemas reportados a partir das telas, mais dois achados no caminho:
+
+- **Ícones das categorias apareciam como texto** (`utensils`, `broom`). Os
+  seeders gravam nomes no estilo Font Awesome, mas não havia biblioteca de
+  ícones instalada e o template imprimia a string. Instalado `lucide-vue-next`
+  e criado `CategoryIcon.vue`, que mapeia os nomes dos seeders para os
+  componentes do Lucide (alguns diferem: `couch` → `Sofa`, `broom` →
+  `BrushCleaning`) e cai em `Package` no desconhecido
+- **Inputs sem estilo** nos formulários de fornecedor. 37 usos de
+  `form-input`/`form-select`/`form-checkbox`, classes do plugin
+  `@tailwindcss/forms`, que não está instalado — não existiam no CSS. Trocadas
+  por `.input` (a convenção que o formulário de eventos já usava) e criada a
+  classe `.checkbox`, que não tinha equivalente
+- **E-mail editável nas configurações**: agora é somente leitura, e o backend
+  ignora o campo mesmo se vier no payload
+- **Plano do fornecedor não era editável**: `subscription_tier` estava no
+  `fillable` e no Resource, mas **não era validado em nenhum Request**, então o
+  formulário nunca conseguiria salvá-lo. Adicionada a regra nos dois Requests,
+  campo no formulário e seletor direto na listagem, via
+  `POST /api/vendors/{id}/subscription-tier`
+- **77 correções de acentuação** em 14 views. Banco e API sempre estiveram
+  corretos — o problema era só nas strings fixas dos templates
+- **Organizações**: a tela dizia "Gerencie" mas é somente leitura, porque não
+  existe API de CRUD de organizations. Texto ajustado; o CRUD entrou no roadmap
+
+Achados durante a investigação:
+
+- **A tela de Configurações era inteiramente não-funcional.** Chamava
+  `PUT /auth/profile` e `PUT /auth/password`, **e nenhuma das duas rotas
+  existia** (404). Implementadas no `AuthController`, com 8 testes. A troca de
+  senha revoga as outras sessões e preserva a atual
+- `currentAccessToken()` nem sempre é um `PersonalAccessToken` (em auth por
+  sessão vem `TransientToken`, e pode vir `null`), o que quebrava a revogação
+  de sessões — tratado
+
+497 testes backend, 50 Vitest, 21 E2E.
 
 ### 2026-09-04 - Suíte E2E, Pint, Vitest 5 e deploy de produção
 - **Criada a stack de produção**: `docker-compose.prod.yml`, `Dockerfile` do

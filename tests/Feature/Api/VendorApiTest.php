@@ -251,6 +251,67 @@ class VendorApiTest extends TestCase
 
     // ─── VERIFY ────────────────────────────────────────────────────────
 
+    // ─── PLANO DE PATROCINIO ──────────────────────────────────────────
+
+    public function test_update_subscription_tier_changes_plan(): void
+    {
+        $this->actingAsSuperAdmin();
+        $vendor = Vendor::factory()->create(['subscription_tier' => 'free']);
+
+        $response = $this->postJson("/api/vendors/{$vendor->id}/subscription-tier", [
+            'subscription_tier' => 'premium',
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.subscription_tier', 'premium');
+        $this->assertDatabaseHas('vendors', [
+            'id' => $vendor->id,
+            'subscription_tier' => 'premium',
+        ]);
+    }
+
+    public function test_update_subscription_tier_rejects_unknown_plan(): void
+    {
+        $this->actingAsSuperAdmin();
+        $vendor = Vendor::factory()->create(['subscription_tier' => 'free']);
+
+        $this->postJson("/api/vendors/{$vendor->id}/subscription-tier", [
+            'subscription_tier' => 'ouro',
+        ])->assertStatus(422);
+
+        $this->assertDatabaseHas('vendors', [
+            'id' => $vendor->id,
+            'subscription_tier' => 'free',
+        ]);
+    }
+
+    public function test_update_subscription_tier_requires_permission(): void
+    {
+        $this->actingAsOrgUser($this->org, 'viewer');
+        $vendor = Vendor::factory()->create();
+
+        $this->postJson("/api/vendors/{$vendor->id}/subscription-tier", [
+            'subscription_tier' => 'premium',
+        ])->assertForbidden();
+    }
+
+    public function test_update_persists_subscription_tier_from_form(): void
+    {
+        // O campo ja estava no fillable e no VendorResource, mas nao era
+        // validado em nenhum Request - entao o formulario nunca conseguia
+        // salva-lo, porque o controller usa $request->validated().
+        $this->actingAsSuperAdmin();
+        $vendor = Vendor::factory()->create(['subscription_tier' => 'free']);
+
+        $this->putJson("/api/vendors/{$vendor->id}", [
+            'subscription_tier' => 'featured',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('vendors', [
+            'id' => $vendor->id,
+            'subscription_tier' => 'featured',
+        ]);
+    }
+
     public function test_verify_marks_vendor_verified(): void
     {
         $this->actingAsSuperAdmin();

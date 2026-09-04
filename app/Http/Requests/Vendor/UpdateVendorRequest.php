@@ -28,6 +28,7 @@ class UpdateVendorRequest extends FormRequest
             'phone' => ['sometimes', 'required', 'string', 'max:20'],
             'whatsapp' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'url', 'max:255'],
+            'subscription_tier' => ['sometimes', 'nullable', Rule::in(['free', 'featured', 'premium'])],
             'address' => ['sometimes', 'required', 'string', 'max:500'],
             'city' => ['sometimes', 'required', 'string', 'max:100'],
             'state' => ['sometimes', 'required', 'string', 'size:2'],

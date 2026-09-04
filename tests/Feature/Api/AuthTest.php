@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -130,6 +131,118 @@ class AuthTest extends TestCase
     }
 
     // ─── ME ───────────────────────────────────────────────────────────
+
+    // ─── PERFIL ───────────────────────────────────────────────────────
+
+    public function test_update_profile_changes_name(): void
+    {
+        $user = $this->actingAsSuperAdmin();
+
+        $this->putJson('/api/auth/profile', ['name' => 'Nome Novo'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Nome Novo');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'Nome Novo']);
+    }
+
+    public function test_update_profile_never_changes_email(): void
+    {
+        // A tela deixa o campo readonly, mas a regra tem que valer tambem para
+        // quem chamar a API direto.
+        $user = $this->actingAsSuperAdmin();
+        $emailOriginal = $user->email;
+
+        $this->putJson('/api/auth/profile', [
+            'name' => 'Nome Novo',
+            'email' => 'invasor@example.com',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'email' => $emailOriginal]);
+        $this->assertDatabaseMissing('users', ['email' => 'invasor@example.com']);
+    }
+
+    public function test_update_profile_requires_name(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        $this->putJson('/api/auth/profile', ['name' => ''])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+    }
+
+    public function test_update_profile_requires_authentication(): void
+    {
+        $this->putJson('/api/auth/profile', ['name' => 'X'])->assertUnauthorized();
+    }
+
+    // ─── SENHA ────────────────────────────────────────────────────────
+
+    public function test_update_password_changes_password(): void
+    {
+        $user = User::factory()->create(['password' => 'senha-atual-123']);
+        $this->actingAs($user, 'sanctum');
+
+        $this->putJson('/api/auth/password', [
+            'current_password' => 'senha-atual-123',
+            'password' => 'senha-nova-456',
+            'password_confirmation' => 'senha-nova-456',
+        ])->assertOk();
+
+        $this->assertTrue(Hash::check('senha-nova-456', $user->fresh()->password));
+    }
+
+    public function test_update_password_rejects_wrong_current_password(): void
+    {
+        $user = User::factory()->create(['password' => 'senha-atual-123']);
+        $this->actingAs($user, 'sanctum');
+
+        $this->putJson('/api/auth/password', [
+            'current_password' => 'chute-errado',
+            'password' => 'senha-nova-456',
+            'password_confirmation' => 'senha-nova-456',
+        ])->assertStatus(422)->assertJsonValidationErrors('current_password');
+
+        $this->assertTrue(Hash::check('senha-atual-123', $user->fresh()->password));
+    }
+
+    public function test_update_password_requires_confirmation(): void
+    {
+        $user = User::factory()->create(['password' => 'senha-atual-123']);
+        $this->actingAs($user, 'sanctum');
+
+        $this->putJson('/api/auth/password', [
+            'current_password' => 'senha-atual-123',
+            'password' => 'senha-nova-456',
+            'password_confirmation' => 'outra-coisa',
+        ])->assertStatus(422)->assertJsonValidationErrors('password');
+    }
+
+    public function test_update_password_revokes_other_sessions_but_keeps_the_current_one(): void
+    {
+        // Trocar a senha nao pode deixar sessoes antigas ativas - mas quem
+        // acabou de trocar nao pode ser deslogado no meio do caminho.
+        // Usa token real (e nao actingAs) porque e justamente o
+        // currentAccessToken() que decide qual token sobrevive.
+        $user = User::factory()->create(['password' => 'senha-atual-123']);
+        $user->createToken('sessao-antiga');
+        $atual = $user->createToken('sessao-atual')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$atual}")
+            ->putJson('/api/auth/password', [
+                'current_password' => 'senha-atual-123',
+                'password' => 'senha-nova-456',
+                'password_confirmation' => 'senha-nova-456',
+            ])->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+            'name' => 'sessao-antiga',
+        ]);
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+            'name' => 'sessao-atual',
+        ]);
+    }
 
     // ─── RATE LIMITING ────────────────────────────────────────────────
 

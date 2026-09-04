@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Vendor;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVendorRequest extends FormRequest
 {
@@ -21,6 +22,7 @@ class StoreVendorRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'whatsapp' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'url', 'max:255'],
+            'subscription_tier' => ['nullable', Rule::in(['free', 'featured', 'premium'])],
             'address' => ['required', 'string', 'max:500'],
             'city' => ['required', 'string', 'max:100'],
             'state' => ['required', 'string', 'size:2'],

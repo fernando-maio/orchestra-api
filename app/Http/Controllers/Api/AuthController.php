@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -115,6 +118,71 @@ class AuthController extends Controller
     /**
      * Logout current device
      */
+    /**
+     * Atualiza o perfil do usuario autenticado.
+     *
+     * O e-mail NAO entra aqui de proposito: e a credencial de login, e trocar
+     * a identidade da conta deve passar por um fluxo com verificacao. O campo
+     * e ignorado silenciosamente se vier no payload, entao a regra vale mesmo
+     * para quem chamar a API direto, sem passar pela tela.
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Perfil atualizado com sucesso.',
+            'data' => new UserResource($user->fresh()->load('organization')),
+        ]);
+    }
+
+    /**
+     * Troca a senha do usuario autenticado.
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+        ]);
+
+        if (! Hash::check($request->input('current_password'), $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['A senha atual está incorreta.'],
+            ]);
+        }
+
+        $user->update(['password' => $request->input('password')]);
+
+        // Invalida as demais sessoes, mantendo apenas o token em uso: uma troca
+        // de senha nao pode deixar sessoes antigas ativas.
+        //
+        // currentAccessToken() nem sempre e um PersonalAccessToken: em auth por
+        // sessao vem um TransientToken, e pode vir null. Nesses casos nao ha
+        // token a preservar e revogamos todos.
+        $currentToken = $user->currentAccessToken();
+        $currentTokenId = $currentToken instanceof PersonalAccessToken
+            ? $currentToken->getKey()
+            : null;
+
+        $user->tokens()
+            ->when($currentTokenId, fn ($query) => $query->where('id', '!=', $currentTokenId))
+            ->delete();
+
+        return response()->json([
+            'message' => 'Senha alterada com sucesso.',
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
