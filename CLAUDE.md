@@ -1005,8 +1005,9 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 > Acordado em 2026-09-04. Vem antes da Fase 2 porque é dívida acumulada que
 > encarece tudo o que vier depois.
 
-#### 1.5.1 - Cobertura de testes do frontend
-Hoje em **16,84% de linhas / 2,79% de branches**. Meta: **60% de linhas**.
+#### 1.5.1 - Cobertura de testes do frontend ✅ CONCLUÍDO (2026-09-05)
+**61,9% de linhas / 52,2% de branches**, partindo de 16,8% / 2,8%.
+246 testes Vitest em 15 arquivos. Meta de 60% atingida.
 
 - [ ] Testes de componente para as views principais: `EventsListView`,
       `VendorsListView`, `EventFormView`, `VendorFormView`, `VendorDetailView`,
@@ -1019,24 +1020,42 @@ Hoje em **16,84% de linhas / 2,79% de branches**. Meta: **60% de linhas**.
 - [ ] Testes dos demais services (`publicVendors`) e da store de auth que
       faltarem
 
-#### 1.5.2 - Auditoria de transações e tratamento de erro
-- [ ] Varrer os Services em busca de operação que escreve em mais de um lugar
-      **sem** `DB::transaction()`. Suspeitos conhecidos: `EventService::duplicate`
-      (evento + relações), `VendorService` (vendor + sync de categorias)
-- [ ] Varrer os Controllers: onde falta `try/catch` para falha externa, e onde
-      há `try/catch` redundante engolindo o que o framework já trata
-- [ ] Confirmar que `Proposal::approve/reject/contract` seguem transacionados
+#### 1.5.2 - Auditoria de transações e tratamento de erro ✅ CONCLUÍDO (2026-09-05)
+Auditoria feita: **não há operação multi-escrita fora de transação**.
+`EventService::duplicate`, `VendorService::createWithCategories` e
+`updateWithCategories`, `CategoryService::reorder` e
+`UserService::changePassword` já estavam transacionados — a suspeita
+registrada aqui antes estava errada.
 
-#### 1.5.3 - Reduzir o baseline do PHPStan
-- [ ] 193 erros congelados em `phpstan-baseline.neon`. Reduzir por área,
-      começando por `app/Services` e `app/Repositories`
+O único caso encontrado foi `AuthController::register`, que criava
+Organization + User + role sem transação. Corrigido ao virar
+`UserService::registerWithOrganization`.
+
+- [ ] Pendente: revisar `try/catch` nos controllers caso a caso — hoje só o
+      `EventController` tem um. Não é violação por si só: o padrão manda **não**
+      adicionar onde o framework já trata
+
+#### 1.5.3 - Reduzir o baseline do PHPStan — parcial (2026-09-05)
+**197 → 58 erros** (redução de 70%).
+
+O grosso não eram relações sem generic, como eu supunha: **68% estavam em
+`Http/Resources`**, que delegam ao model por `__get`. Sete anotações `@mixin`
+zeraram 119 entradas. `BaseRepository` virou genérico (`@template TModel`),
+zerando mais 12.
+
+- [ ] Os 58 restantes são cauda longa, sem padrão único: tipo perdido dentro
+      de closures em `EventService` (16) e `VendorService` (11), 5 `nullsafe`
+      que exigem análise caso a caso (remover um deles **quebraria em
+      runtime**), e 3 de método de locale do Faker
 - [ ] Quando o baseline zerar, avaliar subir do nível 5 para o 6
 
-#### 1.5.4 - Padronizar o que ficou fora do padrão
-- [ ] `AuthController::login`/`register` ainda têm lógica inline e
-      `$request->validate()` — mover para `UserService` + FormRequests, como
-      foi feito com `updateProfile`/`updatePassword`
-- [ ] Revisar os demais controllers contra os Padrões Obrigatórios
+#### 1.5.4 - Padronizar o que ficou fora do padrão ✅ CONCLUÍDO (2026-09-05)
+- Três controllers sem Service nem Repository extraídos: `AdminDashboard`
+  (464→69), `Dashboard` (412→76) e `PublicVendor` (161→78). **1.037 → 223
+  linhas**
+- **Zero `validate()` inline** nos controllers: 7 FormRequests novos
+- `CategoryService::reorder` deixou de acessar `Category::where()` direto
+- `login` e `register` movidos para `UserService`
 
 ### Fase 2 - Fundação do Marketplace
 
@@ -1175,6 +1194,42 @@ O que precisa acontecer quando essa fase começar:
 ---
 
 ## Histórico de Modificações
+
+### 2026-09-05 - Auditoria completa e Fase 1.5
+
+Auditoria de todo o código a pedido do cliente, antes de qualquer deploy.
+A Etapa 1 (arquitetura) apontou três controllers sem Service nem Repository,
+concentrando 149 dos 193 erros do PHPStan em `Http/`.
+
+**Camadas** — `AdminDashboard` (464→69), `Dashboard` (412→76) e
+`PublicVendor` (161→78): de 1.037 para 223 linhas. Criados 2 Repositories
+(38 consultas), 3 Services e 10 FormRequests. Zero `validate()` inline e zero
+acesso direto a Model nos controllers.
+
+**Cobertura de frontend** — 16,8% → **61,9%**. De 112 para 246 testes.
+
+**PHPStan** — 197 → 58 erros congelados (70%). O grosso estava em
+`Http/Resources`, não em relações sem generic como eu supunha.
+
+**Preço dos planos saiu do SQL** — estava num `CASE` duplicado em duas
+queries; mudar um valor exigia editar SQL em dois lugares. Agora em
+`config/billing.php`, com o `CASE` montado por bindings.
+
+Bugs encontrados no caminho:
+
+- **`over_budget` era código morto** nos dois lados. O percentual era limitado
+  com `min(..., 100)` e só depois comparado com `> 100`. Um evento 200%
+  estourado aparecia como "warning", em azul, com "restante R$ 0". O alerta
+  *"N eventos acima do orçamento"* já existia no dashboard e nunca disparava.
+  Corrigido, e a magnitude do estouro passou a ser exposta (`over_amount`,
+  `percentage_real`)
+- **`VendorDetailView` imprimia o nome do ícone** ("bolt Geradores e Energia").
+  Só a listagem de categorias tinha sido corrigida
+- **`AuthController::register`** não tem rota nem teste, e criava
+  Organization + User + role **sem transação**. Corrigido e mantido; será
+  implementado de verdade quando necessário (Fase 4.2)
+- **+22 acentuações** que a varredura anterior não pegou (`"e obrigatório"`,
+  `Razao`, `excluido`)
 
 ### 2026-09-04 - Padrões, ferramentas de qualidade e comando de validação
 
