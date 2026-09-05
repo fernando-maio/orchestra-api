@@ -25,6 +25,8 @@ class CategoryResource extends JsonResource
             'color' => $this->color,
             'is_active' => $this->is_active,
             'sort_order' => $this->sort_order,
+            // Só aparece quando a query usou withCount('vendors'). Sem o
+            // whenCounted, o campo viria nulo nas rotas que não contam.
             'vendors_count' => $this->whenCounted('vendors'),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

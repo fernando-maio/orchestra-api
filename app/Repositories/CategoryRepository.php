@@ -18,12 +18,14 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
 
     public function getAllActive(): Collection
     {
-        return $this->model->active()->ordered()->get();
+        return $this->model->active()->ordered()->withCount('vendors')->get();
     }
 
     public function getAllOrdered(): Collection
     {
-        return $this->model->ordered()->get();
+        // withCount evita o N+1 que um accessor por categoria causaria, e e o
+        // que alimenta o "N fornecedores" da listagem.
+        return $this->model->ordered()->withCount('vendors')->get();
     }
 
     public function updateSortOrder(string $id, int $sortOrder): void

@@ -3,6 +3,7 @@
 namespace Tests\Unit\Repositories;
 
 use App\Models\Category;
+use App\Models\Vendor;
 use App\Repositories\CategoryRepository;
 use Tests\TestCase;
 
@@ -118,5 +119,41 @@ class CategoryRepositoryTest extends TestCase
         $this->assertInstanceOf(Category::class, $result);
         $this->assertEquals('Photography', $result->name);
         $this->assertDatabaseHas('categories', ['slug' => 'photography']);
+    }
+
+    // ──────────────────────────────────────────────────
+    //  contagem de fornecedores
+    // ──────────────────────────────────────────────────
+
+    public function test_get_all_ordered_loads_the_vendor_count(): void
+    {
+        // A listagem mostra "N fornecedores". Sem o withCount o campo nem
+        // chegava na resposta, e o template caía no fallback `|| 0` - toda
+        // categoria aparecia com zero.
+        $categoria = Category::factory()->create();
+        $categoria->vendors()->attach(Vendor::factory()->count(2)->create()->pluck('id'));
+
+        $resultado = $this->repository->getAllOrdered()->firstWhere('id', $categoria->id);
+
+        $this->assertSame(2, $resultado->vendors_count);
+    }
+
+    public function test_get_all_active_loads_the_vendor_count(): void
+    {
+        $categoria = Category::factory()->create(['is_active' => true]);
+        $categoria->vendors()->attach(Vendor::factory()->create()->id);
+
+        $resultado = $this->repository->getAllActive()->firstWhere('id', $categoria->id);
+
+        $this->assertSame(1, $resultado->vendors_count);
+    }
+
+    public function test_category_without_vendors_counts_zero(): void
+    {
+        $categoria = Category::factory()->create();
+
+        $resultado = $this->repository->getAllOrdered()->firstWhere('id', $categoria->id);
+
+        $this->assertSame(0, $resultado->vendors_count);
     }
 }

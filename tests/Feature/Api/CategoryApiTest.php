@@ -259,4 +259,25 @@ class CategoryApiTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_index_returns_the_vendor_count_per_category(): void
+    {
+        $this->actingAsSuperAdmin();
+        $categoria = Category::factory()->create();
+        $categoria->vendors()->attach(Vendor::factory()->count(3)->create()->pluck('id'));
+
+        $this->getJson('/api/categories')
+            ->assertOk()
+            ->assertJsonPath('data.0.vendors_count', 3);
+    }
+
+    public function test_index_returns_zero_for_category_without_vendors(): void
+    {
+        $this->actingAsSuperAdmin();
+        Category::factory()->create();
+
+        $this->getJson('/api/categories')
+            ->assertOk()
+            ->assertJsonPath('data.0.vendors_count', 0);
+    }
 }
