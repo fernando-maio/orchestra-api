@@ -1027,6 +1027,33 @@ O que precisa acontecer quando essa fase começar:
 
 ## Histórico de Modificações
 
+### 2026-09-04 - Refactor: camada de User (SOLID)
+
+`updateProfile` e `updatePassword` tinham sido escritos com a lógica direto no
+controller (`$user->update()`, `Hash::check()`, revogação de tokens) e
+validação inline — fora do padrão Controller → Service → Repository que o
+resto do projeto segue. A área de auth já estava fora do padrão antes, mas
+isso não justificava crescer nela.
+
+- `UserRepositoryInterface` + `UserRepository` (`findByEmail`,
+  `revokeTokensExcept`)
+- `UserServiceInterface` + `UserService` (`updateProfile`, `changePassword`)
+- `UpdateProfileRequest` e `UpdatePasswordRequest` em `Http/Requests/Auth/`
+- `AuthController` passou a receber `UserServiceInterface` por injeção
+- Bindings registrados no `RepositoryServiceProvider`
+
+A troca de senha e a revogação de sessões agora estão numa transação: senha
+nova com sessão antiga ainda válida seria pior que não trocar.
+
+O e-mail é blindado em **duas camadas**: o FormRequest não aceita o campo, e o
+`UserService` faz `unset()` — o service é a última barreira antes da escrita e
+não pode depender de quem o chama ter validado direito.
+
+**+12 testes** (7 de service, 5 de repository), agora possíveis porque a
+lógica saiu do controller. Os 8 testes de feature existentes passaram sem
+alteração, o que confirma que o refactor preservou o comportamento. 509 no
+total.
+
 ### 2026-09-04 - Compliance, filtros e RBAC na UI
 - **Compliance do fornecedor renderizava JSON cru.** A API devolve
   `documents` como **objeto** com chave por tipo, mas o template testava

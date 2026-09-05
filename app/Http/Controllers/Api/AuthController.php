@@ -2,19 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Contracts\Services\UserServiceInterface;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\UpdatePasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly UserServiceInterface $userService,
+    ) {}
+
     /**
      * Login user and create token
      */
@@ -121,62 +127,44 @@ class AuthController extends Controller
     /**
      * Atualiza o perfil do usuario autenticado.
      *
-     * O e-mail NAO entra aqui de proposito: e a credencial de login, e trocar
-     * a identidade da conta deve passar por um fluxo com verificacao. O campo
-     * e ignorado silenciosamente se vier no payload, entao a regra vale mesmo
-     * para quem chamar a API direto, sem passar pela tela.
+     * O e-mail nao e alteravel por aqui: e a credencial de login. A regra vale
+     * em duas camadas - o UpdateProfileRequest nao aceita o campo, e o
+     * UserService descarta caso ele chegue de qualquer forma.
      */
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20'],
-        ]);
-
-        $user->update($data);
+        $user = $this->userService->updateProfile(
+            $request->user(),
+            $request->validated(),
+        );
 
         return response()->json([
             'message' => 'Perfil atualizado com sucesso.',
-            'data' => new UserResource($user->fresh()->load('organization')),
+            'data' => new UserResource($user),
         ]);
     }
 
     /**
      * Troca a senha do usuario autenticado.
      */
-    public function updatePassword(Request $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
     {
         $user = $request->user();
 
-        $request->validate([
-            'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', Password::defaults(), 'confirmed'],
-        ]);
-
-        if (! Hash::check($request->input('current_password'), $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['A senha atual está incorreta.'],
-            ]);
-        }
-
-        $user->update(['password' => $request->input('password')]);
-
-        // Invalida as demais sessoes, mantendo apenas o token em uso: uma troca
-        // de senha nao pode deixar sessoes antigas ativas.
-        //
         // currentAccessToken() nem sempre e um PersonalAccessToken: em auth por
-        // sessao vem um TransientToken, e pode vir null. Nesses casos nao ha
-        // token a preservar e revogamos todos.
+        // sessao vem um TransientToken, e pode vir null. Sem token identificado
+        // nao ha o que preservar, e o service revoga todos.
         $currentToken = $user->currentAccessToken();
         $currentTokenId = $currentToken instanceof PersonalAccessToken
             ? $currentToken->getKey()
             : null;
 
-        $user->tokens()
-            ->when($currentTokenId, fn ($query) => $query->where('id', '!=', $currentTokenId))
-            ->delete();
+        $this->userService->changePassword(
+            $user,
+            $request->validated('current_password'),
+            $request->validated('password'),
+            $currentTokenId,
+        );
 
         return response()->json([
             'message' => 'Senha alterada com sucesso.',
