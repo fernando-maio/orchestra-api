@@ -77,6 +77,19 @@ O Orchestra opera como um **marketplace B2B** conectando empresas de eventos (de
 
 ## Sistema de Avaliações
 
+> **Status: especificado, NÃO implementado.** A tabela `vendor_ratings` existe
+> e está bem modelada (4 dimensões, `contract_value` para a ponderação, fluxo
+> completo de contestação), o Model e a Factory existem — mas **não há nenhum
+> endpoint e nenhum registro no banco**.
+>
+> As estrelas que aparecem na listagem e no detalhe do fornecedor vêm de
+> `vendors.average_rating` e `vendors.total_ratings`, colunas desnormalizadas
+> **preenchidas com dados fictícios pelo seeder**. Nenhuma avaliação real
+> existe no sistema.
+>
+> As regras abaixo são o desenho a implementar, não o comportamento atual.
+
+
 ### Regras Anti-Fraude
 
 | Regra | Descrição |
@@ -117,34 +130,98 @@ Onde: peso_contrato = log10(valor_contrato + 1)
 
 ## APIs de Fornecedores (Marketplace)
 
-### Rotas Públicas (sem autenticação)
+> **Estado real, conferido no `route:list`.** Esta seção já listou endpoints
+> que nunca existiram; o que está marcado como planejado ainda não tem rota.
+
+### Implementado
 
 ```
-POST /api/vendors/register           → Cadastro self-service
+POST /api/public/vendors/register        → Cadastro self-service (sem auth)
+GET  /api/public/vendors/categories      → Categorias para o formulário público
+POST /api/public/vendors/check-cnpj      → Verifica CNPJ duplicado
+POST /api/public/vendors/check-email     → Verifica e-mail duplicado
+
+GET    /api/vendors                      → Lista (filtros: approval_status, categoria, cidade…)
+POST   /api/vendors                      → Cria
+GET    /api/vendors/{id}                 → Exibe
+PUT    /api/vendors/{id}                 → Atualiza
+DELETE /api/vendors/{id}                 → Remove
+POST   /api/vendors/{id}/approve         → Aprova
+POST   /api/vendors/{id}/reject          → Rejeita (com motivo)
+POST   /api/vendors/{id}/toggle-active   → Ativa/desativa  ⚠️ ver ressalva abaixo
+POST   /api/vendors/{id}/verify          → Marca como verificado
+POST   /api/vendors/{id}/subscription-tier → Altera o plano de patrocínio
+GET    /api/vendors/{id}/compliance      → Situação dos documentos
+GET    /api/vendors/nearby               → Busca por geolocalização
+GET    /api/vendors/by-category/{id}     → Filtra por categoria
+```
+
+> ⚠️ **`toggle-active` hoje é uma desativação GLOBAL.** Ver a seção
+> "Vínculo Organização ↔ Fornecedor" abaixo.
+
+### Planejado (sem rota ainda)
+
+```
 GET  /api/vendors/invite/{token}     → Verificar convite
 POST /api/vendors/invite/{token}     → Completar cadastro via convite
-GET  /api/vendors/public             → Lista fornecedores aprovados (busca pública)
-GET  /api/vendors/public/{id}        → Perfil público do fornecedor
-```
-
-### Rotas Admin (Super Admin)
-
-```
-GET  /api/admin/vendors/pending      → Lista fornecedores pendentes
-POST /api/admin/vendors/{id}/approve → Aprovar fornecedor
-POST /api/admin/vendors/{id}/reject  → Rejeitar fornecedor (com motivo)
+GET  /api/admin/vendors/pending      → Fila de aprovação
 POST /api/admin/vendors/import       → Importar CSV/Excel
 GET  /api/admin/vendors/export       → Exportar lista
+POST /api/vendors/{id}/ratings       → Criar avaliação
+GET  /api/vendors/{id}/ratings       → Listar avaliações
+POST /api/ratings/{id}/dispute       → Contestar avaliação
+POST /api/admin/ratings/{id}/resolve → Resolver contestação
 ```
 
-### Rotas de Avaliação (Autenticado)
+---
+
+## Vínculo Organização ↔ Fornecedor
+
+> **Esta é uma inconsistência conhecida entre o modelo de negócio e o código.**
+> Está documentada aqui para não ser reintroduzida por engano, e a correção
+> está na Fase 3 do roadmap.
+
+O modelo de marketplace diz que fornecedores são **globais**: cadastram-se uma
+vez e ficam visíveis para todas as organizações. O código não reflete isso.
+
+**Como está hoje:**
+
+| Item | Situação |
+|---|---|
+| `vendors.organization_id` | FK única e anulável. Todos os fornecedores semeados apontam para a Empresa Demo |
+| `Vendor` + `BelongsToOrganization` | O model **não aplica** o trait — só o `Event` aplica. Fornecedores não são filtrados por organização |
+| `vendors.is_active` | Coluna **global**. `toggle-active` desliga o fornecedor para **todo o marketplace** |
+| Quem pode desativar | Qualquer usuário com `vendors.update`, de **qualquer** organização |
+
+O efeito prático: um admin da Organização A pode desativar um fornecedor e
+tirá-lo do ar para as Organizações B, C e D. Isso não é o comportamento
+desejado num marketplace.
+
+**Modelo alvo** (Fase 3):
 
 ```
-POST /api/vendors/{id}/ratings       → Criar avaliação (requer contrato)
-GET  /api/vendors/{id}/ratings       → Listar avaliações do fornecedor
-POST /api/ratings/{id}/dispute       → Contestar avaliação (fornecedor)
-POST /api/admin/ratings/{id}/resolve → Resolver contestação (admin)
+vendors                      → catálogo GLOBAL, sem organization_id
+  ├─ is_active               → status na PLATAFORMA (só super-admin altera)
+  └─ approval_status         → moderação da plataforma (pending/approved/…)
+
+organization_vendor (pivot N-N)   → a relação de CADA organização com o fornecedor
+  ├─ organization_id
+  ├─ vendor_id
+  ├─ relationship_status     → linked | preferred | blocked
+  ├─ internal_alias          → apelido interno do cliente
+  ├─ notes                   → observações privadas da organização
+  └─ linked_at / unlinked_at
 ```
+
+Com isso:
+- **A organização desvincula** o fornecedor da própria carteira
+  (`relationship_status = 'blocked'` ou remove a linha do pivot). Efeito local.
+- **Só a plataforma desativa** globalmente (`vendors.is_active`), restrito a
+  super-admin. Efeito global, e é uma decisão de moderação.
+
+A avaliação também se escopa por esse pivot: `vendor_ratings` já tem
+`organization_id`, então "a nota que a organização X deu" e "a nota agregada
+do marketplace" passam a ser coisas distintas e coerentes.
 
 ---
 
@@ -524,6 +601,21 @@ No Tailwind v4:
 
 ---
 
+## Acesso de Fornecedor
+
+> **Fornecedores não têm acesso ao sistema.** Verificado: a tabela `users` não
+> tem `vendor_id`, não existe role `vendor`, e não há magic link implementado.
+>
+> O único ponto de contato do fornecedor hoje é o formulário público de
+> auto-cadastro — ele preenche, o registro entra como `pending`, e acabou.
+> Ele não acompanha o status, não recebe cotação e não responde proposta.
+>
+> O desenho previsto (Fase 2) é acesso por **magic link**, sem senha: o
+> fornecedor recebe um link por e-mail para responder a uma cotação
+> específica. Nada disso foi construído.
+
+---
+
 ## Autenticação e Autorização
 
 ### Roles
@@ -831,10 +923,55 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [ ] Fluxo de aprovação (Em Análise → Aprovado → Contratado)
 - [ ] Price Lock (trava de valor)
 
-### Fase 3 - Gestão Completa de Eventos
-- [ ] OrganizationController (CRUD) - a tela de Organizações existe mas é
-      somente leitura; as permissões `organizations.create/update/delete` já
-      estão no seeder e nada as implementa
+### Fase 3 - Marketplace: vínculo, avaliações e cadastros
+
+Esta fase existe porque hoje o código não implementa o modelo de marketplace
+que o produto descreve. A ordem abaixo importa: o pivot N-N vem primeiro
+porque a avaliação e a desvinculação dependem dele.
+
+#### 3.1 - Pivot N-N Organização ↔ Fornecedor (base das demais)
+- [ ] Migration `organization_vendor` (relationship_status, internal_alias,
+      notes, linked_at/unlinked_at)
+- [ ] Migration para remover `vendors.organization_id`, migrando os vínculos
+      existentes para o pivot
+- [ ] `Organization::vendors()` e `Vendor::organizations()` (belongsToMany)
+- [ ] **Separar desvinculação de desativação**: a organização desvincula da
+      própria carteira; só o super-admin altera `vendors.is_active` (global)
+- [ ] Restringir `toggle-active` a super-admin e criar
+      `POST /api/vendors/{id}/link` e `/unlink` para a organização
+- [ ] Ajustar a UI: onde hoje há "Desativar" para qualquer admin, passa a ser
+      "Desvincular"; "Desativar" só aparece para super-admin
+
+#### 3.2 - Fila de aprovação de fornecedores
+- [ ] `GET /api/admin/vendors/pending` - hoje o fornecedor se auto-cadastra e
+      fica `pending`, mas não há tela nem endpoint para ver a fila
+- [ ] Tela de moderação com aprovar/rejeitar em lote
+- [ ] Notificação por e-mail ao fornecedor em cada transição
+
+#### 3.3 - API de avaliações
+- [ ] `POST/GET /api/vendors/{id}/ratings`, `POST /api/ratings/{id}/dispute`,
+      `POST /api/admin/ratings/{id}/resolve`
+- [ ] Aplicar as regras anti-fraude já especificadas (vínculo a contrato, uma
+      por contrato, janela de 30 dias, peso logarítmico por valor)
+- [ ] Recalcular `vendors.average_rating`/`total_ratings` a partir de dados
+      reais - **hoje são valores fictícios do seeder**
+- [ ] Decidir o escopo: nota agregada do marketplace vs. nota que aquela
+      organização deu (o pivot de 3.1 é o que torna isso possível)
+
+#### 3.4 - Cadastro de organizações
+- [ ] `OrganizationController` (CRUD) - a tela existe mas é somente leitura, e
+      as permissões `organizations.create/update/delete` já estão no seeder
+      sem nada implementando
+- [ ] **Decisão de produto pendente**: auto-cadastro com trial? convite/venda
+      assistida? aprovação manual? Hoje a única organização existe porque o
+      seeder a criou
+
+#### 3.5 - Avaliação bidirecional (a decidir)
+- [ ] **Decisão de produto pendente**: o fornecedor avalia a organização?
+      Faz sentido num marketplace (cliente que paga mal, muda escopo), mas é
+      modelagem nova - `vendor_ratings` só vai de organização → fornecedor
+
+### Fase 4 - Gestão Completa de Eventos
 - [ ] EventPhase - Fases do evento
 - [ ] EventTask - Checklist de tarefas
 - [ ] EventTimeline - Cronograma de entregas
@@ -842,20 +979,20 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [ ] Duplicação/Templates de eventos
 - [ ] Dashboard do evento (cockpit)
 
-### Fase 4 - Inteligência e IA
+### Fase 5 - Inteligência e IA
 - [ ] Briefing AI - Sugestão de categorias
 - [ ] OCR de Propostas - Extração de dados de PDFs
 - [ ] Análise de Risco - Score de fornecedores
 - [ ] Sugestão de Fornecedores - Baseado em histórico
 - [ ] Comparação Inteligente - Highlights automáticos
 
-### Fase 5 - Compliance e Documentação
+### Fase 6 - Compliance e Documentação
 - [ ] Compliance Vault - Upload e validação de documentos
 - [ ] Alertas de documentos vencidos
 - [ ] Bloqueio de aprovação se compliance irregular
 - [ ] Histórico de compliance por fornecedor
 
-### Fase 6 - Internacionalização (i18n)
+### Fase 7 - Internacionalização (i18n)
 
 Hoje a UI está **somente em pt_BR**, com as strings escritas direto nos
 templates. A ordem de idiomas planejada é **Inglês, Francês e Espanhol**.
@@ -879,7 +1016,7 @@ O que precisa acontecer quando essa fase começar:
 > corrigir o pt_BR agora e deixar a extração para quando o segundo idioma
 > entrar de fato.
 
-### Fase 7 - Integrações e Escala
+### Fase 8 - Integrações e Escala
 - [ ] Webhooks para ERPs (SAP, Microsiga)
 - [ ] Exportação CSV/JSON formatada
 - [ ] API pública para integrações
@@ -889,6 +1026,27 @@ O que precisa acontecer quando essa fase começar:
 ---
 
 ## Histórico de Modificações
+
+### 2026-09-04 - Compliance, filtros e RBAC na UI
+- **Compliance do fornecedor renderizava JSON cru.** A API devolve
+  `documents` como **objeto** com chave por tipo, mas o template testava
+  `Array.isArray()` e caía num dump genérico, imprimindo o JSON e rótulos em
+  inglês ("IS COMPLIANT", "TOTAL DOCUMENTS"). Reescrito para a forma real da
+  API, com badge de situação e lista de documentos exigidos
+- Filtros de eventos em **uma linha só** (50/30/20). Sem o filtro de
+  organização, a busca absorve o espaço em vez de deixar vão (70/30)
+- **UI passou a respeitar as permissões** (ver commit próprio): guard de rota
+  com `meta.permission` e `v-if` nos botões. Antes, `hasPermission()` existia
+  na store e **nenhuma view o usava**
+- Filtro por organização nos eventos, só para super-admin
+- Usuários de teste para `organizer` e `viewer`
+- **`CLAUDE.md` corrigido**: a seção de APIs de fornecedores listava 8
+  endpoints que nunca existiram; o sistema de avaliações estava descrito como
+  se funcionasse (não há endpoint nem registro; as estrelas são dados
+  fictícios do seeder); e não havia menção de que fornecedores não têm acesso
+  ao sistema
+- Documentada a inconsistência **Vínculo Organização ↔ Fornecedor** e o
+  modelo alvo com pivot N-N, agora na Fase 3 do roadmap
 
 ### 2026-09-04 - Correções de UI e acentuação
 
