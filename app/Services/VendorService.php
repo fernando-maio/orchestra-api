@@ -70,6 +70,35 @@ class VendorService extends BaseService implements VendorServiceInterface
         });
     }
 
+    /**
+     * Cadastro publico de fornecedor (self-service).
+     *
+     * Os campos de moderacao sao definidos AQUI e nao no FormRequest de
+     * proposito: sao regra de negocio, nao entrada do usuario. Se dependessem
+     * do request, um payload malicioso poderia se auto-aprovar.
+     */
+    public function registerSelfService(array $data, array $categoryIds): Vendor
+    {
+        $data['approval_status'] = 'pending';
+        $data['source'] = 'self_register';
+        $data['is_active'] = false;              // inativo ate a aprovacao
+        $data['service_radius_km'] = $data['service_radius_km'] ?? 50;
+
+        $vendor = $this->createWithCategories($data, $categoryIds);
+
+        return $vendor->load('categories');
+    }
+
+    public function cnpjExists(string $cnpj): bool
+    {
+        return $this->vendorRepository->existsByCnpj($cnpj);
+    }
+
+    public function emailExists(string $email): bool
+    {
+        return $this->vendorRepository->existsByEmail($email);
+    }
+
     public function toggleActive(string $id): Vendor
     {
         $vendor = $this->vendorRepository->findOrFail($id);

@@ -49,48 +49,6 @@ parameters:
 			path: app/Http/Controllers/Api/CategoryController.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Proposal\:\:\$count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Proposal\:\:\$submitted_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$event\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trade_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Proposal\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>total_value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:canBeEdited\(\)\.$#'
 			identifier: method.notFound
 			count: 1

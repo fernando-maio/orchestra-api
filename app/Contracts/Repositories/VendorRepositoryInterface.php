@@ -14,6 +14,10 @@ interface VendorRepositoryInterface extends BaseRepositoryInterface
 
     public function findByCnpj(string $cnpj): ?Vendor;
 
+    public function existsByCnpj(string $cnpj): bool;
+
+    public function existsByEmail(string $email): bool;
+
     public function findNearby(float $latitude, float $longitude, int $radiusKm, array $filters = []): Collection;
 
     public function findByCategory(string $categoryId): Collection;

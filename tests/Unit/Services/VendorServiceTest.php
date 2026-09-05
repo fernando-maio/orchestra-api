@@ -295,4 +295,107 @@ class VendorServiceTest extends TestCase
         $this->assertEquals('Alvará de Funcionamento', $result['documents']['alvara']['label']);
         $this->assertEquals('Contrato Social', $result['documents']['social_contract']['label']);
     }
+
+    // ──────────────────────────────────────────────────
+    //  registerSelfService
+    // ──────────────────────────────────────────────────
+
+    public function test_register_self_service_creates_pending_and_inactive_vendor(): void
+    {
+        $categoria = Category::factory()->create();
+
+        $vendor = $this->service->registerSelfService([
+            'trade_name' => 'Fornecedor Novo',
+            'cnpj' => '11.222.333/0001-44',
+            'email' => 'novo@example.com',
+            'city' => 'São Paulo',
+            'state' => 'SP',
+        ], [$categoria->id]);
+
+        $this->assertSame('pending', $vendor->approval_status);
+        $this->assertSame('self_register', $vendor->source);
+        $this->assertFalse((bool) $vendor->is_active);
+    }
+
+    public function test_register_self_service_ignores_moderation_fields_from_payload(): void
+    {
+        // Defesa em profundidade: o FormRequest nao aceita esses campos, mas o
+        // service tambem nao pode confiar em quem o chama. Um payload que tente
+        // se auto-aprovar precisa ser neutralizado aqui.
+        $categoria = Category::factory()->create();
+
+        $vendor = $this->service->registerSelfService([
+            'trade_name' => 'Tentativa',
+            'cnpj' => '99.888.777/0001-66',
+            'email' => 'tentativa@example.com',
+            'city' => 'São Paulo',
+            'state' => 'SP',
+            'approval_status' => 'approved',
+            'is_active' => true,
+            'source' => 'admin',
+        ], [$categoria->id]);
+
+        $this->assertSame('pending', $vendor->approval_status);
+        $this->assertFalse((bool) $vendor->is_active);
+        $this->assertSame('self_register', $vendor->source);
+    }
+
+    public function test_register_self_service_applies_default_radius(): void
+    {
+        $categoria = Category::factory()->create();
+
+        $vendor = $this->service->registerSelfService([
+            'trade_name' => 'Sem Raio',
+            'cnpj' => '55.444.333/0001-22',
+            'email' => 'semraio@example.com',
+            'city' => 'São Paulo',
+            'state' => 'SP',
+        ], [$categoria->id]);
+
+        $this->assertSame(50, $vendor->service_radius_km);
+    }
+
+    public function test_register_self_service_attaches_categories(): void
+    {
+        $categorias = Category::factory()->count(2)->create();
+
+        $vendor = $this->service->registerSelfService([
+            'trade_name' => 'Com Categorias',
+            'cnpj' => '77.666.555/0001-88',
+            'email' => 'comcat@example.com',
+            'city' => 'São Paulo',
+            'state' => 'SP',
+        ], $categorias->pluck('id')->all());
+
+        $this->assertCount(2, $vendor->categories);
+    }
+
+    // ──────────────────────────────────────────────────
+    //  cnpjExists / emailExists
+    // ──────────────────────────────────────────────────
+
+    public function test_cnpj_exists_detects_registered_vendor(): void
+    {
+        Vendor::factory()->create(['cnpj' => '12.345.678/0001-99']);
+
+        $this->assertTrue($this->service->cnpjExists('12.345.678/0001-99'));
+        $this->assertFalse($this->service->cnpjExists('00.000.000/0000-00'));
+    }
+
+    public function test_email_exists_detects_registered_vendor(): void
+    {
+        Vendor::factory()->create(['email' => 'existe@example.com']);
+
+        $this->assertTrue($this->service->emailExists('existe@example.com'));
+        $this->assertFalse($this->service->emailExists('naoexiste@example.com'));
+    }
+
+    public function test_soft_deleted_vendor_does_not_block_new_registration(): void
+    {
+        // Sem isso, um fornecedor removido travaria o CNPJ para sempre.
+        $vendor = Vendor::factory()->create(['cnpj' => '33.222.111/0001-00']);
+        $vendor->delete();
+
+        $this->assertFalse($this->service->cnpjExists('33.222.111/0001-00'));
+    }
 }

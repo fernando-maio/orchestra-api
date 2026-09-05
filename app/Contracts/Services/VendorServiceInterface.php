@@ -22,6 +22,12 @@ interface VendorServiceInterface extends BaseServiceInterface
 
     public function updateWithCategories(string $id, array $data, array $categoryIds): Vendor;
 
+    public function registerSelfService(array $data, array $categoryIds): Vendor;
+
+    public function cnpjExists(string $cnpj): bool;
+
+    public function emailExists(string $email): bool;
+
     public function toggleActive(string $id): Vendor;
 
     public function verify(string $id): Vendor;

@@ -95,6 +95,18 @@ class VendorRepository extends BaseRepository implements VendorRepositoryInterfa
         return $this->model->where('cnpj', $cnpj)->first();
     }
 
+    public function existsByCnpj(string $cnpj): bool
+    {
+        // O SoftDeletes ja exclui os removidos do escopo padrao, entao nao
+        // precisa de whereNull('deleted_at') aqui.
+        return $this->model->where('cnpj', $cnpj)->exists();
+    }
+
+    public function existsByEmail(string $email): bool
+    {
+        return $this->model->where('email', $email)->exists();
+    }
+
     public function findNearby(float $latitude, float $longitude, int $radiusKm, array $filters = []): Collection
     {
         $query = $this->model
