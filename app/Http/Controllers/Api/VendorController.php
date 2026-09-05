@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Contracts\Services\VendorServiceInterface;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Vendor\NearbyVendorsRequest;
+use App\Http\Requests\Vendor\RejectVendorRequest;
 use App\Http\Requests\Vendor\StoreVendorRequest;
+use App\Http\Requests\Vendor\UpdateSubscriptionTierRequest;
 use App\Http\Requests\Vendor\UpdateVendorRequest;
 use App\Http\Resources\VendorResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
@@ -151,13 +153,9 @@ class VendorController extends Controller
      * Existe separado do update para permitir a troca direto na listagem, sem
      * abrir o cadastro inteiro e sem exigir os campos obrigatorios dele.
      */
-    public function updateSubscriptionTier(Request $request, string $id): JsonResponse
+    public function updateSubscriptionTier(UpdateSubscriptionTierRequest $request, string $id): JsonResponse
     {
-        $this->authorize('vendors.update');
-
-        $data = $request->validate([
-            'subscription_tier' => ['required', Rule::in(['free', 'featured', 'premium'])],
-        ]);
+        $data = $request->validated();
 
         $vendor = $this->vendorService->update($id, $data);
 
@@ -182,15 +180,8 @@ class VendorController extends Controller
     /**
      * Busca fornecedores próximos por geolocalização
      */
-    public function nearby(Request $request): AnonymousResourceCollection
+    public function nearby(NearbyVendorsRequest $request): AnonymousResourceCollection
     {
-        $request->validate([
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'radius_km' => ['sometimes', 'integer', 'min:1', 'max:500'],
-            'category_id' => ['sometimes', 'uuid', 'exists:categories,id'],
-        ]);
-
         $filters = $request->only(['category_id', 'is_verified', 'accepts_urgent']);
 
         $vendors = $this->vendorService->findNearby(
@@ -252,14 +243,8 @@ class VendorController extends Controller
     /**
      * Rejeita um fornecedor pendente
      */
-    public function reject(Request $request, string $id): JsonResponse
+    public function reject(RejectVendorRequest $request, string $id): JsonResponse
     {
-        $this->authorize('vendors.approve');
-
-        $request->validate([
-            'reason' => ['required', 'string', 'max:1000'],
-        ]);
-
         $vendor = $this->vendorService->findOrFail($id);
 
         if ($vendor->approval_status !== 'pending') {

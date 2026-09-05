@@ -23,6 +23,11 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         return $this->model->ordered()->get();
     }
 
+    public function updateSortOrder(string $id, int $sortOrder): void
+    {
+        $this->model->newQuery()->where('id', $id)->update(['sort_order' => $sortOrder]);
+    }
+
     public function findBySlug(string $slug): ?Category
     {
         return $this->model->where('slug', $slug)->first();

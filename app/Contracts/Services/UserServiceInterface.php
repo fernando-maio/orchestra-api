@@ -8,6 +8,22 @@ use Illuminate\Validation\ValidationException;
 interface UserServiceInterface extends BaseServiceInterface
 {
     /**
+     * Autentica e emite token.
+     *
+     * @return array{user: User, token: string}
+     *
+     * @throws ValidationException
+     */
+    public function authenticate(string $email, string $password, string $deviceName): array;
+
+    /**
+     * Cria organizacao + primeiro administrador, numa transacao.
+     *
+     * @return array{user: User, token: string}
+     */
+    public function registerWithOrganization(array $data): array;
+
+    /**
      * Atualiza os dados de perfil do usuario.
      *
      * O e-mail nao entra aqui: e a credencial de login, e troca-lo deve passar

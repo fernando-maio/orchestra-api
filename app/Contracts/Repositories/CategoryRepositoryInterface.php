@@ -11,5 +11,7 @@ interface CategoryRepositoryInterface extends BaseRepositoryInterface
 
     public function getAllOrdered(): Collection;
 
+    public function updateSortOrder(string $id, int $sortOrder): void;
+
     public function findBySlug(string $slug): ?Category;
 }

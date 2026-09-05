@@ -6,6 +6,7 @@ use App\Contracts\Services\EventServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Event\StoreEventRequest;
 use App\Http\Requests\Event\UpdateEventRequest;
+use App\Http\Requests\Event\UpdateEventStatusRequest;
 use App\Http\Resources\EventResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -129,16 +130,10 @@ class EventController extends Controller
     /**
      * Altera o status do evento
      */
-    public function updateStatus(Request $request, string $id): JsonResponse
+    public function updateStatus(UpdateEventStatusRequest $request, string $id): JsonResponse
     {
-        $this->authorize('events.update');
-
-        $request->validate([
-            'status' => ['required', 'string', 'in:draft,active,completed,canceled'],
-        ]);
-
         try {
-            $event = $this->eventService->updateStatus($id, $request->input('status'));
+            $event = $this->eventService->updateStatus($id, $request->validated('status'));
 
             return response()->json([
                 'message' => 'Status do evento atualizado com sucesso.',

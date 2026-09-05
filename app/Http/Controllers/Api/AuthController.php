@@ -4,15 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Contracts\Services\UserServiceInterface;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdatePasswordRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -24,94 +23,44 @@ class AuthController extends Controller
     /**
      * Login user and create token
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
-            'device_name' => 'nullable|string',
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['As credenciais informadas estão incorretas.'],
-            ]);
-        }
-
-        if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['Esta conta está desativada.'],
-            ]);
-        }
-
-        // Check organization subscription
-        if ($user->organization && ! $user->organization->isSubscriptionActive()) {
-            if (! $user->isSuperAdmin()) {
-                throw ValidationException::withMessages([
-                    'email' => ['A assinatura da sua organização está inativa.'],
-                ]);
-            }
-        }
-
-        $deviceName = $request->device_name ?? $request->userAgent() ?? 'unknown';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $resultado = $this->userService->authenticate(
+            $request->validated('email'),
+            $request->validated('password'),
+            $request->deviceName(),
+        );
 
         return response()->json([
             'message' => 'Login realizado com sucesso.',
             'data' => [
-                'user' => $this->formatUser($user),
-                'token' => $token,
+                'user' => $this->formatUser($resultado['user']),
+                'token' => $resultado['token'],
             ],
         ]);
     }
 
     /**
-     * Register a new user
+     * Cria uma organização com seu primeiro administrador.
+     *
+     * ATENÇÃO: não há rota apontando para este método. O cadastro público está
+     * desabilitado por decisão de produto, e como a organização se cadastra
+     * ainda é questão em aberto (Fase 4.2 do roadmap). Mantido e corrigido
+     * para não virar armadilha caso alguém decida roteá-lo.
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'organization_name' => 'required|string|max:255',
-        ]);
-
-        // Create organization
-        $organization = Organization::create([
-            'name' => $request->organization_name,
-            'email' => $request->email,
-            'subscription_status' => 'trial',
-            'subscription_ends_at' => now()->addDays(14),
-        ]);
-
-        // Create user
-        $user = User::create([
-            'organization_id' => $organization->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password,
-        ]);
-
-        // Assign admin role
-        $user->assignRole('admin');
-
-        $token = $user->createToken('api')->plainTextToken;
+        $resultado = $this->userService->registerWithOrganization($request->validated());
 
         return response()->json([
             'message' => 'Cadastro realizado com sucesso.',
             'data' => [
-                'user' => $this->formatUser($user),
-                'token' => $token,
+                'user' => $this->formatUser($resultado['user']),
+                'token' => $resultado['token'],
             ],
         ], 201);
     }
 
-    /**
-     * Get current authenticated user
-     */
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Contracts\Services\CategoryServiceInterface;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Category\ReorderCategoriesRequest;
 use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
@@ -109,16 +110,9 @@ class CategoryController extends Controller
     /**
      * Reordena as categorias
      */
-    public function reorder(Request $request): JsonResponse
+    public function reorder(ReorderCategoriesRequest $request): JsonResponse
     {
-        $this->authorize('categories.update');
-
-        $request->validate([
-            'ids' => ['required', 'array'],
-            'ids.*' => ['required', 'uuid', 'exists:categories,id'],
-        ]);
-
-        $this->categoryService->reorder($request->input('ids'));
+        $this->categoryService->reorder($request->validated('ids'));
 
         return response()->json([
             'message' => 'Categorias reordenadas com sucesso.',

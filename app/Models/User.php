@@ -41,6 +41,14 @@ class User extends Authenticatable
     }
 
     // Relationships
+
+    /**
+     * O generic no retorno permite que a analise estatica enxergue os metodos
+     * de Organization em $user->organization->...  Sem ele o PHPStan so ve
+     * Eloquent\Model e acusa metodo inexistente.
+     *
+     * @return BelongsTo<Organization, $this>
+     */
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);

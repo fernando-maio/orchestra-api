@@ -44,9 +44,11 @@ class CategoryService extends BaseService implements CategoryServiceInterface
 
     public function reorder(array $orderedIds): bool
     {
+        // Ou todas as posicoes mudam, ou nenhuma: uma falha no meio deixaria
+        // a lista pela metade, com ordem incoerente.
         return DB::transaction(function () use ($orderedIds) {
             foreach ($orderedIds as $index => $id) {
-                Category::where('id', $id)->update(['sort_order' => $index + 1]);
+                $this->categoryRepository->updateSortOrder($id, $index + 1);
             }
 
             return true;
