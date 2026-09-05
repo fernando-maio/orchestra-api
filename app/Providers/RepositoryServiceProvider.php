@@ -2,24 +2,28 @@
 
 namespace App\Providers;
 
-use App\Contracts\Repositories\CategoryRepositoryInterface;
+use App\Contracts\Repositories\AdminDashboardRepositoryInterface;
 // Category
+use App\Contracts\Repositories\CategoryRepositoryInterface;
 use App\Contracts\Repositories\DashboardRepositoryInterface;
 use App\Contracts\Repositories\EventRepositoryInterface;
 use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Contracts\Repositories\VendorRepositoryInterface;
+use App\Contracts\Services\AdminDashboardServiceInterface;
 use App\Contracts\Services\CategoryServiceInterface;
 use App\Contracts\Services\DashboardServiceInterface;
 use App\Contracts\Services\EventServiceInterface;
 // Vendor
 use App\Contracts\Services\UserServiceInterface;
 use App\Contracts\Services\VendorServiceInterface;
+use App\Repositories\AdminDashboardRepository;
 use App\Repositories\CategoryRepository;
 use App\Repositories\DashboardRepository;
 use App\Repositories\EventRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\VendorRepository;
 // Event
+use App\Services\AdminDashboardService;
 use App\Services\CategoryService;
 use App\Services\DashboardService;
 use App\Services\EventService;
@@ -39,6 +43,7 @@ class RepositoryServiceProvider extends ServiceProvider
         EventRepositoryInterface::class => EventRepository::class,
         UserRepositoryInterface::class => UserRepository::class,
         DashboardRepositoryInterface::class => DashboardRepository::class,
+        AdminDashboardRepositoryInterface::class => AdminDashboardRepository::class,
 
         // Services
         CategoryServiceInterface::class => CategoryService::class,
@@ -46,6 +51,7 @@ class RepositoryServiceProvider extends ServiceProvider
         EventServiceInterface::class => EventService::class,
         UserServiceInterface::class => UserService::class,
         DashboardServiceInterface::class => DashboardService::class,
+        AdminDashboardServiceInterface::class => AdminDashboardService::class,
     ];
 
     /**
