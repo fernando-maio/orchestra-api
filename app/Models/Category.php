@@ -42,11 +42,17 @@ class Category extends Model
     }
 
     // Relationships
+    /**
+     * @return BelongsToMany<Vendor, $this>
+     */
     public function vendors(): BelongsToMany
     {
         return $this->belongsToMany(Vendor::class);
     }
 
+    /**
+     * @return HasMany<QuoteRequest, $this>
+     */
     public function quoteRequests(): HasMany
     {
         return $this->hasMany(QuoteRequest::class);

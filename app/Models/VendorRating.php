@@ -68,31 +68,49 @@ class VendorRating extends Model
     }
 
     // Relationships
+    /**
+     * @return BelongsTo<Vendor, $this>
+     */
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
     }
 
+    /**
+     * @return BelongsTo<Event, $this>
+     */
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
     }
 
+    /**
+     * @return BelongsTo<Proposal, $this>
+     */
     public function proposal(): BelongsTo
     {
         return $this->belongsTo(Proposal::class);
     }
 
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function rater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rated_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function resolvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dispute_resolved_by');

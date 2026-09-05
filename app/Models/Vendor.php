@@ -76,21 +76,33 @@ class Vendor extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * @return BelongsToMany<Category, $this>
+     */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class);
     }
 
+    /**
+     * @return HasMany<Proposal, $this>
+     */
     public function proposals(): HasMany
     {
         return $this->hasMany(Proposal::class);
     }
 
+    /**
+     * @return BelongsToMany<QuoteRequest, $this>
+     */
     public function quoteRequests(): BelongsToMany
     {
         return $this->belongsToMany(QuoteRequest::class)
@@ -98,22 +110,34 @@ class Vendor extends Model
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<VendorDocument, $this>
+     */
     public function documents(): HasMany
     {
         return $this->hasMany(VendorDocument::class);
     }
 
+    /**
+     * @return HasMany<VendorRating, $this>
+     */
     public function ratings(): HasMany
     {
         return $this->hasMany(VendorRating::class);
     }
 
     // Relationships for approval/invite
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function invitedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');

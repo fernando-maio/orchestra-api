@@ -7,6 +7,9 @@ use App\Models\Event;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * @extends BaseRepository<Event>
+ */
 class EventRepository extends BaseRepository implements EventRepositoryInterface
 {
     public function __construct(Event $model)

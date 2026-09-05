@@ -68,21 +68,33 @@ class Proposal extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<QuoteRequest, $this>
+     */
     public function quoteRequest(): BelongsTo
     {
         return $this->belongsTo(QuoteRequest::class);
     }
 
+    /**
+     * @return BelongsTo<Vendor, $this>
+     */
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    /**
+     * @return HasMany<ProposalHistory, $this>
+     */
     public function history(): HasMany
     {
         return $this->hasMany(ProposalHistory::class);

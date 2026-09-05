@@ -7,8 +7,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * @template TModel of Model
+ */
 abstract class BaseRepository implements BaseRepositoryInterface
 {
+    /** @var TModel */
     protected Model $model;
 
     public function __construct(Model $model)

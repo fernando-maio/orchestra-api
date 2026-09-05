@@ -7,6 +7,9 @@ use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * @extends BaseRepository<Vendor>
+ */
 class VendorRepository extends BaseRepository implements VendorRepositoryInterface
 {
     public function __construct(Vendor $model)

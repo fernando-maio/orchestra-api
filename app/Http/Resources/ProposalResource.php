@@ -2,9 +2,16 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Proposal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * Resource delega para o model por __get, entao a analise estatica nao
+ * enxerga as propriedades. O @mixin diz de onde elas vem.
+ *
+ * @mixin Proposal
+ */
 class ProposalResource extends JsonResource
 {
     public function toArray(Request $request): array

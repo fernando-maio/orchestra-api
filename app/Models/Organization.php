@@ -39,16 +39,25 @@ class Organization extends Model
     ];
 
     // Relationships
+    /**
+     * @return HasMany<User, $this>
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return HasMany<Event, $this>
+     */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
     }
 
+    /**
+     * @return HasMany<Vendor, $this>
+     */
     public function vendors(): HasMany
     {
         return $this->hasMany(Vendor::class);

@@ -54,16 +54,25 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * @return HasMany<Event, $this>
+     */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<QuoteRequest, $this>
+     */
     public function quoteRequests(): HasMany
     {
         return $this->hasMany(QuoteRequest::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<Proposal, $this>
+     */
     public function proposalReviews(): HasMany
     {
         return $this->hasMany(Proposal::class, 'reviewed_by');

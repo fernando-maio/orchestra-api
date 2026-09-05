@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * @template TModel of Model
+ */
 abstract class BaseService implements BaseServiceInterface
 {
     protected BaseRepositoryInterface $repository;

@@ -6,6 +6,9 @@ use App\Contracts\Repositories\CategoryRepositoryInterface;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * @extends BaseRepository<Category>
+ */
 class CategoryRepository extends BaseRepository implements CategoryRepositoryInterface
 {
     public function __construct(Category $model)

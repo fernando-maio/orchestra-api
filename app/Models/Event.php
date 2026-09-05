@@ -55,16 +55,25 @@ class Event extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<QuoteRequest, $this>
+     */
     public function quoteRequests(): HasMany
     {
         return $this->hasMany(QuoteRequest::class);
@@ -75,6 +84,9 @@ class Event extends Model
         return $this->hasManyThrough(Proposal::class, QuoteRequest::class);
     }
 
+    /**
+     * @return HasMany<VendorRating, $this>
+     */
     public function ratings(): HasMany
     {
         return $this->hasMany(VendorRating::class);

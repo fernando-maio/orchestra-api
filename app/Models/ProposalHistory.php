@@ -28,11 +28,17 @@ class ProposalHistory extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<Proposal, $this>
+     */
     public function proposal(): BelongsTo
     {
         return $this->belongsTo(Proposal::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

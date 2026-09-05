@@ -43,21 +43,33 @@ class QuoteRequest extends Model
     ];
 
     // Relationships
+    /**
+     * @return BelongsTo<Event, $this>
+     */
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
     }
 
+    /**
+     * @return BelongsTo<Category, $this>
+     */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return BelongsToMany<Vendor, $this>
+     */
     public function vendors(): BelongsToMany
     {
         return $this->belongsToMany(Vendor::class, 'quote_request_vendor')
@@ -65,6 +77,9 @@ class QuoteRequest extends Model
             ->withTimestamps();
     }
 
+    /**
+     * @return HasMany<Proposal, $this>
+     */
     public function proposals(): HasMany
     {
         return $this->hasMany(Proposal::class);
