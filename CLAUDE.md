@@ -915,63 +915,84 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [x] Events com status variados
 - [x] Usuários de teste (super-admin + admin)
 
-### Fase 2 - Cotações e Propostas
+### Fase 2 - Fundação do Marketplace
+
+Vem antes das cotações de propósito. A Fase 3 envia cotações **para
+fornecedores**, e "quais fornecedores esta organização pode cotar" depende do
+vínculo. Construir a cotação primeiro, sobre o `vendors.organization_id`
+atual, obrigaria a reescrevê-la depois.
+
+#### 2.1 - Pivot N-N Organização ↔ Fornecedor
+- [ ] Migration `organization_vendor` (relationship_status, internal_alias,
+      notes, linked_at/unlinked_at)
+- [ ] Migration removendo `vendors.organization_id`, migrando os vínculos
+      existentes para o pivot
+- [ ] `Organization::vendors()` e `Vendor::organizations()` (belongsToMany)
+- [ ] **Separar desvinculação de desativação**: a organização desvincula da
+      própria carteira; só o super-admin altera `vendors.is_active` (global).
+      Ver a seção "Vínculo Organização ↔ Fornecedor"
+- [ ] Restringir `toggle-active` a super-admin; criar
+      `POST /api/vendors/{id}/link` e `/unlink`
+- [ ] UI: "Desativar" vira "Desvincular" para o admin; "Desativar" só aparece
+      para super-admin
+
+#### 2.2 - Fila de aprovação e compliance
+Agrupados porque a regra "bloquear aprovação se o compliance estiver
+irregular" liga os dois — separá-los faria a fila nascer sem o critério que
+deveria usar.
+
+- [ ] `GET /api/admin/vendors/pending` — hoje o fornecedor se auto-cadastra e
+      fica `pending`, mas não há tela nem endpoint para ver a fila
+- [ ] Tela de moderação com aprovar/rejeitar
+- [ ] **Upload de documentos de compliance** — hoje existe só o
+      `GET /compliance`; `vendor_documents` tem 0 linhas e não há como enviar
+      nada. A tela de detalhe já mostra "3 documentos não enviados" sem
+      oferecer meio de enviá-los
+- [ ] Alertas de documento vencido
+- [ ] Bloqueio de aprovação quando o compliance está irregular
+- [ ] Notificação por e-mail ao fornecedor em cada transição
+
+### Fase 3 - Cotações e Propostas
 - [ ] QuoteRequestController completo
 - [ ] ProposalController completo
-- [ ] Magic Links para fornecedores (acesso sem login)
+- [ ] Magic Links para fornecedores (acesso sem login) — `quote_request_vendor`
+      **já tem** `token` e `token_expires_at` modelados; falta implementar
 - [ ] Matriz de comparação de propostas
 - [ ] Fluxo de aprovação (Em Análise → Aprovado → Contratado)
 - [ ] Price Lock (trava de valor)
 
-### Fase 3 - Marketplace: vínculo, avaliações e cadastros
+### Fase 4 - Avaliações e cadastro de organizações
 
-Esta fase existe porque hoje o código não implementa o modelo de marketplace
-que o produto descreve. A ordem abaixo importa: o pivot N-N vem primeiro
-porque a avaliação e a desvinculação dependem dele.
+Depende da Fase 3: a regra anti-fraude é "só avalia quem contratou uma
+proposta". Sem o fluxo de propostas não há o que avaliar.
 
-#### 3.1 - Pivot N-N Organização ↔ Fornecedor (base das demais)
-- [ ] Migration `organization_vendor` (relationship_status, internal_alias,
-      notes, linked_at/unlinked_at)
-- [ ] Migration para remover `vendors.organization_id`, migrando os vínculos
-      existentes para o pivot
-- [ ] `Organization::vendors()` e `Vendor::organizations()` (belongsToMany)
-- [ ] **Separar desvinculação de desativação**: a organização desvincula da
-      própria carteira; só o super-admin altera `vendors.is_active` (global)
-- [ ] Restringir `toggle-active` a super-admin e criar
-      `POST /api/vendors/{id}/link` e `/unlink` para a organização
-- [ ] Ajustar a UI: onde hoje há "Desativar" para qualquer admin, passa a ser
-      "Desvincular"; "Desativar" só aparece para super-admin
-
-#### 3.2 - Fila de aprovação de fornecedores
-- [ ] `GET /api/admin/vendors/pending` - hoje o fornecedor se auto-cadastra e
-      fica `pending`, mas não há tela nem endpoint para ver a fila
-- [ ] Tela de moderação com aprovar/rejeitar em lote
-- [ ] Notificação por e-mail ao fornecedor em cada transição
-
-#### 3.3 - API de avaliações
+#### 4.1 - API de avaliações
 - [ ] `POST/GET /api/vendors/{id}/ratings`, `POST /api/ratings/{id}/dispute`,
       `POST /api/admin/ratings/{id}/resolve`
-- [ ] Aplicar as regras anti-fraude já especificadas (vínculo a contrato, uma
-      por contrato, janela de 30 dias, peso logarítmico por valor)
+- [ ] Regras anti-fraude já especificadas (vínculo a contrato, uma por
+      contrato, janela de 30 dias, peso logarítmico por valor)
 - [ ] Recalcular `vendors.average_rating`/`total_ratings` a partir de dados
-      reais - **hoje são valores fictícios do seeder**
-- [ ] Decidir o escopo: nota agregada do marketplace vs. nota que aquela
-      organização deu (o pivot de 3.1 é o que torna isso possível)
+      reais — **hoje são valores fictícios do seeder**
+- [ ] Escopo da nota: agregada do marketplace vs. a que aquela organização
+      deu (o pivot da 2.1 é o que torna isso possível)
 
-#### 3.4 - Cadastro de organizações
-- [ ] `OrganizationController` (CRUD) - a tela existe mas é somente leitura, e
-      as permissões `organizations.create/update/delete` já estão no seeder
+#### 4.2 - Cadastro de organizações
+- [ ] `OrganizationController` (CRUD) — a tela existe mas é somente leitura,
+      e as permissões `organizations.create/update/delete` já estão no seeder
       sem nada implementando
 - [ ] **Decisão de produto pendente**: auto-cadastro com trial? convite/venda
-      assistida? aprovação manual? Hoje a única organização existe porque o
-      seeder a criou
+      assistida? aprovação manual?
 
-#### 3.5 - Avaliação bidirecional (a decidir)
+#### 4.3 - Avaliação bidirecional (a decidir)
 - [ ] **Decisão de produto pendente**: o fornecedor avalia a organização?
-      Faz sentido num marketplace (cliente que paga mal, muda escopo), mas é
-      modelagem nova - `vendor_ratings` só vai de organização → fornecedor
+      Faz sentido num marketplace, mas é modelagem nova — `vendor_ratings` só
+      vai de organização → fornecedor
 
-### Fase 4 - Gestão Completa de Eventos
+### Fase 5 - Gestão Completa de Eventos
+
+> Independente das demais: não bloqueia nem é bloqueada por nenhuma outra
+> fase, e pode ser tocada em paralelo.
+
 - [ ] EventPhase - Fases do evento
 - [ ] EventTask - Checklist de tarefas
 - [ ] EventTimeline - Cronograma de entregas
@@ -979,20 +1000,25 @@ porque a avaliação e a desvinculação dependem dele.
 - [ ] Duplicação/Templates de eventos
 - [ ] Dashboard do evento (cockpit)
 
-### Fase 5 - Inteligência e IA
+### Fase 6 - Inteligência e IA
 - [ ] Briefing AI - Sugestão de categorias
 - [ ] OCR de Propostas - Extração de dados de PDFs
 - [ ] Análise de Risco - Score de fornecedores
 - [ ] Sugestão de Fornecedores - Baseado em histórico
 - [ ] Comparação Inteligente - Highlights automáticos
 
-### Fase 6 - Compliance e Documentação
-- [ ] Compliance Vault - Upload e validação de documentos
-- [ ] Alertas de documentos vencidos
-- [ ] Bloqueio de aprovação se compliance irregular
-- [ ] Histórico de compliance por fornecedor
+### Fase 7 - Compliance avançado
 
-### Fase 7 - Internacionalização (i18n)
+> O básico (upload, alerta de vencimento, bloqueio de aprovação) foi movido
+> para a **2.2**, porque a fila de aprovação precisa desse critério para
+> existir. O que fica aqui é o que vai além do mínimo.
+
+- [ ] Histórico de compliance por fornecedor (linha do tempo dos documentos)
+- [ ] Validação automática de CNPJ contra base externa (Receita)
+- [ ] Renovação assistida: notificar o fornecedor antes do vencimento
+- [ ] Relatório de compliance da carteira, por organização
+
+### Fase 8 - Internacionalização (i18n)
 
 Hoje a UI está **somente em pt_BR**, com as strings escritas direto nos
 templates. A ordem de idiomas planejada é **Inglês, Francês e Espanhol**.
@@ -1016,7 +1042,7 @@ O que precisa acontecer quando essa fase começar:
 > corrigir o pt_BR agora e deixar a extração para quando o segundo idioma
 > entrar de fato.
 
-### Fase 8 - Integrações e Escala
+### Fase 9 - Integrações e Escala
 - [ ] Webhooks para ERPs (SAP, Microsiga)
 - [ ] Exportação CSV/JSON formatada
 - [ ] API pública para integrações
@@ -1026,6 +1052,26 @@ O que precisa acontecer quando essa fase começar:
 ---
 
 ## Histórico de Modificações
+
+### 2026-09-04 - Roadmap reordenado por dependência
+
+Revisão da sequência, motivada por uma inversão real:
+
+- **Pivot N-N passou para a Fase 2**, antes das cotações. A cotação é enviada
+  *para fornecedores*, e "quais fornecedores esta organização pode cotar"
+  depende do vínculo. Construí-la primeiro sobre o `vendors.organization_id`
+  atual obrigaria a reescrevê-la depois
+- **Compliance básico agrupado com a fila de aprovação (2.2)**. A regra
+  "bloquear aprovação se o compliance estiver irregular" liga os dois; estavam
+  em fases distantes (3.2 e 6). A Fase 7 ficou só com o que vai além do mínimo
+- Avaliações e cadastro de organizações viraram Fase 4, **depois** das
+  propostas — a regra anti-fraude é "só avalia quem contratou"
+- Gestão de eventos (Fase 5) marcada como **independente**: não bloqueia nem é
+  bloqueada, pode ser tocada em paralelo
+
+Ordem final: 2 (fundação do marketplace) → 3 (cotações) → 4 (avaliações e
+organizações) → 5 (eventos, paralelizável) → 6 (IA) → 7 (compliance avançado)
+→ 8 (i18n) → 9 (integrações).
 
 ### 2026-09-04 - Refactor: camada de User (SOLID)
 
