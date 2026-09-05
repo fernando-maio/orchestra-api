@@ -303,6 +303,90 @@ backend/app/
 
 ---
 
+## Padrões Obrigatórios de Desenvolvimento
+
+> **Leia antes de escrever código.** Estes padrões foram acordados com o
+> cliente e valem para tudo — passo do roadmap ou ajuste avulso. Ao terminar
+> qualquer trabalho, rode **`/validar`** antes de commitar (o comando está em
+> `backend/.claude/commands/validar.md`).
+
+### Camadas — nada de lógica no Controller
+
+```
+Request → Controller → Service → Repository → Database
+              ↓            ↓
+        FormRequest    Interface (Contract)
+```
+
+| Onde | O que pode | O que NÃO pode |
+|---|---|---|
+| Controller | Receber, delegar, responder | Regra de negócio, `Model::where()`, `save()` |
+| Service | Regra de negócio, orquestração, transação | Montar resposta HTTP |
+| Repository | Acesso a dados, queries | Regra de negócio |
+| FormRequest | Validação e autorização de entrada | Efeito colateral |
+
+Todo Service e Repository tem **interface em `app/Contracts/`** e binding no
+`RepositoryServiceProvider`. O Controller injeta a **interface**.
+
+### Transações
+
+Toda operação que escreve em **mais de um lugar** vai dentro de
+`DB::transaction()`. Exemplo real: trocar a senha e revogar as sessões — sem a
+transação, uma falha no meio deixaria senha nova com sessão antiga válida,
+pior que não ter trocado. Escrita única não precisa.
+
+### Tratamento de erro nos Controllers
+
+`try/catch` para o que pode falhar por causa externa (I/O, serviço terceiro,
+integridade referencial), devolvendo resposta adequada.
+
+**Não** adicione try/catch onde o framework já trata:
+`ModelNotFoundException` → 404, `ValidationException` → 422,
+`AuthorizationException` → 403. E nunca engula exceção para o teste passar.
+
+### Defesa em profundidade
+
+Regra de negócio crítica vale **também no Service**, não só no FormRequest. O
+Service é a última barreira antes da escrita e não pode depender de quem o
+chama ter validado direito. Exemplo: o e-mail não é alterável — o
+`UpdateProfileRequest` não aceita o campo **e** o `UserService` faz `unset()`.
+
+### Testes — na camada onde a regra mora
+
+| O que mudou | Teste obrigatório |
+|---|---|
+| Service / Repository | Unitário em `tests/Unit/` |
+| Endpoint | Feature em `tests/Feature/Api/` (feliz + validação + **permissão**) |
+| Componente / lógica de view | Vitest em `__tests__/` |
+| Fluxo de usuário novo | Spec E2E |
+
+> **Se você validou algo com script de browser descartável, isso precisa virar
+> teste.** Script confirma uma vez; teste protege todo dia. Essa lacuna já
+> aconteceu neste projeto e custou caro.
+
+### Frontend
+
+- Sem `any` — use `unknown` + helpers de `@/types/api-error`
+- Ação protegida usa `auth.hasPermission()`, e a rota tem `meta.permission`
+- Texto de UI em **pt-BR com acentuação correta**
+- Lógica de transformação em `computed`/função pura, para testar sem montar a view
+
+### Ferramentas de qualidade
+
+```bash
+docker exec orchestra-php ./vendor/bin/pint --test        # estilo PHP
+docker exec orchestra-php ./vendor/bin/phpstan analyse    # análise estática (Larastan, nível 5)
+docker exec orchestra-frontend npm run lint               # ESLint
+docker exec orchestra-frontend npx vue-tsc --noEmit -p tsconfig.app.json
+```
+
+> `phpstan-baseline.neon` congela os **193 erros** que já existiam quando a
+> análise foi introduzida, para que a ferramenta cobre apenas código novo.
+> **Nunca regenere o baseline para fazer um erro novo desaparecer** — isso
+> esconde o problema. Reduzi-lo é item próprio do roadmap.
+
+---
+
 ## Arquitetura do Sistema
 
 ### Padrão SOLID + Clean Architecture
@@ -522,8 +606,9 @@ docker exec orchestra-frontend npm install -D <package-name>
 # Rodar build
 docker exec orchestra-frontend npm run build
 
-# Rodar lint
+# Rodar lint (ESLint)
 docker exec orchestra-frontend npm run lint
+docker exec orchestra-frontend npm run lint:fix
 
 # Verificar pacotes desatualizados
 docker exec orchestra-frontend npm outdated
@@ -915,6 +1000,44 @@ O sistema possui **dois dashboards distintos** baseados no tipo de usuário:
 - [x] Events com status variados
 - [x] Usuários de teste (super-admin + admin)
 
+### Fase 1.5 - Dívida técnica (PRÓXIMO PASSO)
+
+> Acordado em 2026-09-04. Vem antes da Fase 2 porque é dívida acumulada que
+> encarece tudo o que vier depois.
+
+#### 1.5.1 - Cobertura de testes do frontend
+Hoje em **16,84% de linhas / 2,79% de branches**. Meta: **60% de linhas**.
+
+- [ ] Testes de componente para as views principais: `EventsListView`,
+      `VendorsListView`, `EventFormView`, `VendorFormView`, `VendorDetailView`,
+      `EventDetailView`, `SettingsView`
+- [ ] Testes dos gates de permissão **nos botões** (o guard de rota já tem);
+      usar `setupAuthWithPermissions()` de `src/test/helpers.ts`
+- [ ] Testes de componente para `CategoriesListView` e `OrganizationsListView`
+- [ ] Specs E2E para os fluxos ainda descobertos: troca de plano do
+      fornecedor, edição de perfil, troca de senha, filtro por organização
+- [ ] Testes dos demais services (`publicVendors`) e da store de auth que
+      faltarem
+
+#### 1.5.2 - Auditoria de transações e tratamento de erro
+- [ ] Varrer os Services em busca de operação que escreve em mais de um lugar
+      **sem** `DB::transaction()`. Suspeitos conhecidos: `EventService::duplicate`
+      (evento + relações), `VendorService` (vendor + sync de categorias)
+- [ ] Varrer os Controllers: onde falta `try/catch` para falha externa, e onde
+      há `try/catch` redundante engolindo o que o framework já trata
+- [ ] Confirmar que `Proposal::approve/reject/contract` seguem transacionados
+
+#### 1.5.3 - Reduzir o baseline do PHPStan
+- [ ] 193 erros congelados em `phpstan-baseline.neon`. Reduzir por área,
+      começando por `app/Services` e `app/Repositories`
+- [ ] Quando o baseline zerar, avaliar subir do nível 5 para o 6
+
+#### 1.5.4 - Padronizar o que ficou fora do padrão
+- [ ] `AuthController::login`/`register` ainda têm lógica inline e
+      `$request->validate()` — mover para `UserService` + FormRequests, como
+      foi feito com `updateProfile`/`updatePassword`
+- [ ] Revisar os demais controllers contra os Padrões Obrigatórios
+
 ### Fase 2 - Fundação do Marketplace
 
 Vem antes das cotações de propósito. A Fase 3 envia cotações **para
@@ -1052,6 +1175,28 @@ O que precisa acontecer quando essa fase começar:
 ---
 
 ## Histórico de Modificações
+
+### 2026-09-04 - Padrões, ferramentas de qualidade e comando de validação
+
+- **Larastan (PHPStan) instalado**, nível 5, com `phpstan-baseline.neon`
+  congelando os 193 erros pré-existentes — a ferramenta passa a cobrar só
+  código novo
+- **ESLint instalado** (`eslint-plugin-vue` + `typescript-eslint`). Desligadas
+  as regras de pura formatação de template, que geravam ~1.500 avisos sem
+  relação com qualidade e afogavam o que importa: de 1.584 para 20 problemas
+- Corrigidos os 6 erros reais que o lint encontrou: **4 usos de `any`** em
+  `catch` (LoginView, RegisterView, SettingsView) e 2 variáveis mortas nos
+  E2E. Criado `src/types/api-error.ts` com `getValidationErrors()` e
+  `getApiErrorMessage()`, substituindo `catch (error: any)` — `any` desligava
+  a checagem justamente onde o dado vem de fora
+- Adicionado o script `lint`/`lint:fix`, que o CLAUDE.md documentava mas **não
+  existia**
+- Nova seção **"Padrões Obrigatórios de Desenvolvimento"** — camadas,
+  transações, try/catch, defesa em profundidade, testes por camada
+- Novo comando **`/validar`** (`backend/.claude/commands/validar.md`), a ser
+  rodado ao fim de cada passo do roadmap ou ajuste avulso, antes de commitar.
+  Escopo é só o que foi alterado; se falhar, corrige e repete
+- **Fase 1.5 (dívida técnica)** criada como próximo passo
 
 ### 2026-09-04 - Roadmap reordenado por dependência
 

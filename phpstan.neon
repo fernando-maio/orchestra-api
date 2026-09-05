@@ -1,0 +1,20 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    # Congela os erros que ja existiam quando a analise foi introduzida, para
+    # que a ferramenta cobre apenas codigo novo. Reduzir este arquivo e um item
+    # proprio do roadmap - nao deve ser feito de carona em outra tarefa.
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app
+        - database/factories
+        - database/seeders
+
+    # Nivel 5 e o ponto de equilibrio para um projeto que ainda nao foi tipado
+    # por inteiro: pega erro real (metodo inexistente, tipo incompativel, acesso
+    # a propriedade que nao existe) sem exigir generics anotados em tudo.
+    # Subir para 6+ deve ser um passo proprio do roadmap, nao um efeito colateral.
+    level: 5
+
+    treatPhpDocTypesAsCertain: false
