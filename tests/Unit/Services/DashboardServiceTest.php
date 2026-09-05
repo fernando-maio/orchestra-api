@@ -98,7 +98,9 @@ class DashboardServiceTest extends TestCase
         $overview = $this->service->getBudgetOverview($this->org->id);
 
         $this->assertSame('ok', $overview['events'][0]['status']);
-        $this->assertSame(0, $overview['events'][0]['percentage']);
+        // float em todos os casos: antes era int só quando o orçamento era
+        // zero, o que deixava o tipo do campo inconsistente.
+        $this->assertSame(0.0, $overview['events'][0]['percentage']);
     }
 
     public function test_budget_totals_are_aggregated(): void
@@ -111,6 +113,70 @@ class DashboardServiceTest extends TestCase
         $this->assertSame(30000.0, (float) $overview['totals']['total_budget']);
         $this->assertSame(10000.0, (float) $overview['totals']['total_spent']);
         $this->assertSame(20000.0, (float) $overview['totals']['savings']);
+    }
+
+    // ──────────────────────────────────────────────────
+    //  getBudgetOverview - magnitude do estouro
+    // ──────────────────────────────────────────────────
+
+    public function test_over_amount_exposes_how_much_exceeded_the_budget(): void
+    {
+        // `remaining` fica em zero quando estoura, entao sem over_amount a
+        // magnitude nao chegaria a tela: o cliente veria "restante R$ 0" sem
+        // saber que passou R$ 10.000.
+        $this->eventoComGasto(orcamento: 10000, gasto: 20000);
+
+        $overview = $this->service->getBudgetOverview($this->org->id);
+
+        $this->assertSame(10000.0, (float) $overview['events'][0]['over_amount']);
+        $this->assertSame(0.0, (float) $overview['events'][0]['remaining']);
+    }
+
+    public function test_over_amount_is_zero_when_within_budget(): void
+    {
+        $this->eventoComGasto(orcamento: 10000, gasto: 4000);
+
+        $overview = $this->service->getBudgetOverview($this->org->id);
+
+        $this->assertSame(0.0, (float) $overview['events'][0]['over_amount']);
+        $this->assertSame(6000.0, (float) $overview['events'][0]['remaining']);
+    }
+
+    public function test_percentage_real_is_not_capped(): void
+    {
+        $this->eventoComGasto(orcamento: 10000, gasto: 25000);
+
+        $overview = $this->service->getBudgetOverview($this->org->id);
+
+        $this->assertSame(250.0, (float) $overview['events'][0]['percentage_real']);
+        // O percentual da barra continua limitado.
+        $this->assertSame(100.0, (float) $overview['events'][0]['percentage']);
+    }
+
+    public function test_totals_expose_platform_wide_overage(): void
+    {
+        $this->eventoComGasto(orcamento: 10000, gasto: 15000);
+        $this->eventoComGasto(orcamento: 10000, gasto: 2000);
+
+        $totais = $this->service->getBudgetOverview($this->org->id)['totals'];
+
+        // 20.000 de orcamento, 17.000 gastos: no agregado nao estourou.
+        $this->assertSame(0.0, (float) $totais['over_amount']);
+        $this->assertSame(3000.0, (float) $totais['savings']);
+        // Mas um evento estourou, e a tela precisa avisar mesmo assim.
+        $this->assertSame(1, $totais['over_budget_count']);
+    }
+
+    public function test_totals_over_amount_when_aggregate_exceeds(): void
+    {
+        $this->eventoComGasto(orcamento: 10000, gasto: 30000);
+
+        $totais = $this->service->getBudgetOverview($this->org->id)['totals'];
+
+        $this->assertSame(20000.0, (float) $totais['over_amount']);
+        $this->assertSame(0.0, (float) $totais['savings']);
+        $this->assertSame(300.0, (float) $totais['percentage_real']);
+        $this->assertSame(100.0, (float) $totais['percentage']);
     }
 
     // ──────────────────────────────────────────────────

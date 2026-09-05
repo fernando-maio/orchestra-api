@@ -90,7 +90,7 @@ class DashboardService implements DashboardServiceInterface
         $events = $this->repository->activeEvents($organizationId)->map(function ($event) {
             $spent = $this->repository->sumContractedValueForEvent($event->id);
             $budget = (float) ($event->estimated_budget ?? 0);
-            $percentage = $budget > 0 ? min(round(($spent / $budget) * 100, 1), 100) : 0;
+            $percentualReal = $budget > 0 ? round(($spent / $budget) * 100, 1) : 0.0;
 
             return [
                 'id' => $event->id,
@@ -98,13 +98,24 @@ class DashboardService implements DashboardServiceInterface
                 'estimated_budget' => $budget,
                 'spent' => $spent,
                 'remaining' => max($budget - $spent, 0),
-                'percentage' => $percentage,
+                // Quanto passou do orçamento. Zero quando não estourou.
+                // `remaining` fica em zero nesse caso, então sem este campo a
+                // magnitude do estouro não chegaria à tela.
+                'over_amount' => max($spent - $budget, 0),
+                // Limitado a 100 para a largura da barra de progresso.
+                'percentage' => min($percentualReal, 100),
+                // O valor real, que pode passar de 100. É o que o cliente
+                // precisa ver quando estourou.
+                'percentage_real' => $percentualReal,
                 'status' => $this->budgetStatus($budget, $spent),
             ];
         });
 
-        $totalBudget = $events->sum('estimated_budget');
-        $totalSpent = $events->sum('spent');
+        $totalBudget = (float) $events->sum('estimated_budget');
+        $totalSpent = (float) $events->sum('spent');
+        $percentualRealTotal = $totalBudget > 0
+            ? round(($totalSpent / $totalBudget) * 100, 1)
+            : 0.0;
 
         return [
             'events' => $events->toArray(),
@@ -112,9 +123,12 @@ class DashboardService implements DashboardServiceInterface
                 'total_budget' => $totalBudget,
                 'total_spent' => $totalSpent,
                 'savings' => max($totalBudget - $totalSpent, 0),
-                'percentage' => $totalBudget > 0
-                    ? round(($totalSpent / $totalBudget) * 100, 1)
-                    : 0,
+                'over_amount' => max($totalSpent - $totalBudget, 0),
+                'percentage' => min($percentualRealTotal, 100),
+                'percentage_real' => $percentualRealTotal,
+                // Quantos eventos estouraram, para a tela avisar sem ter de
+                // recalcular a partir da lista.
+                'over_budget_count' => $events->where('status', 'over_budget')->count(),
             ],
         ];
     }
